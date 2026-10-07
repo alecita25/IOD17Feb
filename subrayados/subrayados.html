@@ -100,6 +100,8 @@ header.top h1 { font-size: 1.75rem; font-weight: 700; }
 .callout { border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; background: var(--bg); }
 .callout p { margin: 0; font-size: .9rem; min-width: 0; flex: 1 1 260px; }
 .callout.warn { background: var(--warn-soft); border-color: transparent; }
+.callout.stack { flex-direction: column; align-items: stretch; }
+.callout.stack p { flex: none; }
 
 .thesis { font-family: var(--font-display); font-size: 1.3rem; line-height: 1.45; margin: 0; max-width: 62ch; }
 .label { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
@@ -524,15 +526,41 @@ function renderShelf() {
 function renderNewBookForm() {
   const nb = S.newBook;
   return `
-  <div class="nb-head"><div class="eyebrow">Nuevo libro</div><h2>¿Qué estás leyendo?</h2></div>
+  <div class="nb-head"><div class="eyebrow">Nuevo libro</div><h2>Pega tus destacados</h2></div>
   <form class="nb-body" id="new-form" autocomplete="off">
-    <div class="field"><label for="nb-title">Título</label><input type="text" id="nb-title" required value="${esc(nb.title)}" placeholder="Ej.: Hábitos atómicos"></div>
-    <div class="field"><label for="nb-author">Autor</label><input type="text" id="nb-author" value="${esc(nb.author)}" placeholder="Ej.: James Clear"></div>
-    <div class="field"><label for="nb-goal">¿Para qué quieres aplicar este libro?</label><input type="text" id="nb-goal" value="${esc(nb.goal)}" placeholder="Ej.: organizar mejor mi semana de trabajo y estudio">
-      <span class="help">Claude usa esto para elegir ejemplos y acciones que te sirvan a ti.</span></div>
-    <div class="row"><button class="btn primary" type="submit">Crear libro</button><button class="btn ghost" type="button" data-act="cancel-new">Cancelar</button></div>
-    <p class="help" style="margin:0;color:var(--muted);font-size:.85rem">Después vas a «Agregar» y pegas los destacados que copiaste de Apple Books.</p>
+    <div class="field">
+      <label for="nb-raw">Destacados copiados de Apple Books</label>
+      <span class="help">El título y el autor los sacamos del texto que agrega Apple Books al copiar («Extracto de…»). No tienes que escribirlos.</span>
+      <textarea id="nb-raw" placeholder="“El momento presente es todo lo que tienes.”&#10;&#10;Extracto de&#10;El poder del ahora&#10;Eckhart Tolle&#10;Este material puede estar protegido por derechos de autor.">${esc(nb.raw)}</textarea>
+    </div>
+    ${nb.needTitle ? `
+    <div class="callout warn stack">
+      <p>No encontramos el nombre del libro en lo que pegaste. ¿Cuál es?</p>
+      <div class="field"><label for="nb-title">Título</label><input type="text" id="nb-title" required value="${esc(nb.title)}"></div>
+      <div class="field"><label for="nb-author">Autor (opcional)</label><input type="text" id="nb-author" value="${esc(nb.author)}"></div>
+    </div>` : ""}
+    <div class="row"><button class="btn primary" type="submit">Agregar libro</button><button class="btn ghost" type="button" data-act="cancel-new">Cancelar</button></div>
+    ${S.found ? `<div class="found">${S.found.map((f, i) => `<div class="found-item"><span class="t">${esc(f.title)}${f.author ? ` <span class="loc">${esc(f.author)}</span>` : ""}</span><span class="row"><span class="loc">${f.count} subrayados</span><button class="btn" type="button" data-import="${i}">Importar</button></span></div>`).join("")}</div>` : ""}
+    <details class="howto"><summary>Cómo copiar tus destacados de Apple Books</summary>
+      <ul>
+        <li><b>En el Mac:</b> abre el libro en la app Libros, abre el panel de notas, selecciona todo (⌘A), copia (⌘C) y pega aquí.</li>
+        <li><b>En el iPhone o iPad:</b> toca un destacado, elige «Copiar» y pégalo aquí. Puedes pegar varios juntos.</li>
+      </ul>
+    </details>
   </form>`;
+}
+
+/* Guarda lo pegado en el libro que indica el texto; si no indica ninguno, en fallback. */
+function importParsed(parsed, fallback) {
+  let target = parsed.title ? findBookByTitle(parsed.title) : null;
+  if (!target && parsed.title && (!fallback || norm(fallback.title) !== norm(parsed.title))) {
+    target = makeBook(parsed.title, parsed.author, ""); S.books[target.id] = target;
+  }
+  target = target || fallback;
+  if (parsed.author && !target.author) target.author = parsed.author;
+  const n = addHighlights(target, parsed.items);
+  S.currentId = target.id; persist(target);
+  return { target, n };
 }
 
 function renderSummary(book) {
@@ -541,7 +569,7 @@ function renderSummary(book) {
   const canGen = !!S.sample && !S.sampleOff && !book.isExample;
   let top = "";
   if (S.gen && S.gen.bookId === book.id) {
-    top = `<div class="callout gen" style="flex-direction:column;align-items:stretch">
+    top = `<div class="callout gen stack">
       <div class="row" style="justify-content:space-between"><span class="row"><span class="spinner" aria-hidden="true"></span> <b>${S.gen.mode === "update" ? "Actualizando el resumen…" : "Escribiendo tu resumen…"}</b> <span class="loc" id="gen-count">${S.gen.text ? S.gen.text.length + " caracteres" : "Pensando…"}</span></span>
       <button class="btn" data-act="stop">Detener</button></div>
       <div class="gen-out" id="gen-out">${esc(S.gen.text.slice(-600))}</div>
@@ -551,7 +579,12 @@ function renderSummary(book) {
   } else if (!book.highlights.length) {
     top = `<div class="callout"><p>Todavía no hay subrayados en este libro. Agrégalos y luego genera el resumen.</p><button class="btn primary" data-tab="agregar">Agregar subrayados</button></div>`;
   } else if (!s) {
-    top = `<div class="callout"><p>Tienes <b>${book.highlights.length}</b> subrayados. Claude los agrupará en ideas, las explicará en simple y te propondrá acciones concretas.</p>${canGen ? `<button class="btn primary" data-act="gen-full">Generar resumen</button>` : ""}</div>`;
+    top = `<div class="callout stack">
+      <p>Tienes <b>${book.highlights.length}</b> subrayado${book.highlights.length === 1 ? "" : "s"}. Claude los agrupará en ideas, las explicará en simple y te propondrá acciones concretas.</p>
+      <div class="field"><label for="goal-pre-${esc(book.id)}">¿Para qué quieres aplicar este libro? (opcional)</label>
+        <input type="text" id="goal-pre-${esc(book.id)}" data-goal value="${esc(book.goal)}" placeholder="Ej.: mantener la calma en el trabajo">
+        <span class="help">Con esto los ejemplos y las acciones se ajustan a tu vida.</span></div>
+      ${canGen ? `<div class="row"><button class="btn primary" data-act="gen-full">Generar resumen</button></div>` : ""}</div>`;
   } else if (pend) {
     top = `<div class="callout warn"><p><b>${pend} subrayado${pend > 1 ? "s" : ""} nuevo${pend > 1 ? "s" : ""}</b> desde el último resumen. Al actualizar se suman sin perder lo que ya marcaste.</p>${canGen ? `<button class="btn primary" data-act="gen-update">Actualizar resumen</button>` : ""}</div>`;
   }
@@ -629,7 +662,7 @@ function renderAdd(book) {
     <label for="paste">Pega tus subrayados</label>
     <span class="help">Copia tus destacados en Apple Books y pégalos tal cual: quitamos solo el «Extracto de… Este material puede estar protegido…» que agrega la app. Puedes pegar varios de una vez. Si escribes a mano, deja una línea en blanco entre cada uno.</span>
     <textarea id="paste" placeholder="“La disciplina es elegir entre lo que quieres ahora y lo que más quieres.”&#10;&#10;Extracto de&#10;Título del libro&#10;Autor&#10;Este material puede estar protegido por derechos de autor.">${esc(S.draft)}</textarea>
-    <div class="row"><button class="btn primary" data-act="add-paste">Agregar a «${esc(book.title)}»</button></div>
+    <div class="row"><button class="btn primary" data-act="add-paste">Agregar destacados</button><span class="help" style="color:var(--muted);font-size:.8rem">Si son de otro libro, se crea solo.</span></div>
   </section>
   <details class="howto" open><summary>Cómo copiar tus destacados de Apple Books</summary>
     <ul>
@@ -700,13 +733,13 @@ document.addEventListener("click", async (e) => {
     if (!target) { target = makeBook(f.title, f.author, ""); S.books[target.id] = target; }
     const n = addHighlights(target, f.items);
     persist(target);
-    S.currentId = target.id; S.found = null; S.tab = n ? "resumen" : "subrayados";
+    S.currentId = target.id; S.found = null; S.newBook = null; S.tab = n ? "resumen" : "subrayados";
     toast(n ? `${n} subrayados agregados a «${target.title}».` : "No había subrayados nuevos.");
     render(); return;
   }
   switch (t.dataset.act) {
-    case "new-book": S.newBook = { title: "", author: "", goal: "" }; render(); setTimeout(() => $("#nb-title")?.focus(), 0); break;
-    case "cancel-new": S.newBook = null; render(); break;
+    case "new-book": S.newBook = { raw: "", title: "", author: "", needTitle: false }; S.found = null; render(); setTimeout(() => $("#nb-raw")?.focus(), 0); break;
+    case "cancel-new": S.newBook = null; S.found = null; render(); break;
     case "gen-full": generate("full"); break;
     case "gen-update": generate("update"); break;
     case "stop": S.gen?.ctl.abort(); break;
@@ -717,11 +750,8 @@ document.addEventListener("click", async (e) => {
       const raw = S.draft.trim(); if (!raw) { toast("Pega al menos un subrayado."); return; }
       const parsed = parsePasted(raw);
       if (!parsed) { S.found = parseClippings(raw); S.draft = ""; render(); return; }
-      // Apple Books trae el título en el pie: si ya tienes ese libro, van ahí.
-      const target = (parsed.title && findBookByTitle(parsed.title)) || book;
-      if (parsed.author && !target.author && (!parsed.title || norm(parsed.title) === norm(target.title))) target.author = parsed.author;
-      const n = addHighlights(target, parsed.items);
-      S.draft = ""; S.currentId = target.id; persist(target); render();
+      const { target, n } = importParsed(parsed, book);
+      S.draft = ""; render();
       toast(n ? `${n} subrayado${n > 1 ? "s" : ""} agregado${n > 1 ? "s" : ""} a «${target.title}».` : "Esos subrayados ya estaban guardados.");
       break;
     }
@@ -753,11 +783,15 @@ document.addEventListener("input", (e) => {
 document.addEventListener("submit", (e) => {
   if (e.target.id !== "new-form") return;
   e.preventDefault();
-  const { title, author, goal } = S.newBook;
-  if (!title.trim()) return;
-  const b = findBookByTitle(title) || makeBook(title, author, goal);
-  S.books[b.id] = b; S.currentId = b.id; S.newBook = null; S.tab = "agregar";
-  persist(b); render();
+  const nb = S.newBook, raw = nb.raw.trim();
+  if (!raw) { toast("Pega al menos un destacado."); return; }
+  const parsed = parsePasted(raw);
+  if (!parsed) { S.found = parseClippings(raw); render(); return; }
+  if (!parsed.title && !nb.title.trim()) { nb.needTitle = true; render(); setTimeout(() => $("#nb-title")?.focus(), 0); return; }
+  if (!parsed.title) { parsed.title = nb.title.trim(); parsed.author = parsed.author || nb.author.trim(); }
+  const { target, n } = importParsed(parsed, null);
+  S.newBook = null; S.found = null; S.tab = "resumen"; render();
+  toast(`${n} subrayado${n === 1 ? "" : "s"} en «${target.title}»${target.author ? " de " + target.author : ""}.`);
 });
 function readFile(file) {
   const r = new FileReader();
