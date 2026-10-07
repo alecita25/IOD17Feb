@@ -1,0 +1,775 @@
+<title>Subrayados en Práctica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: estante de libros a la izquierda (chips arriba en móvil), cuaderno del libro a la derecha con pestañas Resumen / Subrayados / Agregar. */
+:root {
+  --bg: #F3F4F7;
+  --surface: #FFFFFF;
+  --ink: #1C2230;
+  --muted: #5B6476;
+  --line: #DCE0E8;
+  --accent: #2C4A9E;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E6EBF8;
+  --hl: rgba(255, 221, 64, .55);
+  --ok: #2F7D4F;
+  --ok-soft: #E3F2E9;
+  --warn: #9A5B00;
+  --warn-soft: #FFF1D6;
+  --danger: #B3261E;
+  --font-display: "Literata", Georgia, "Times New Roman", serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11141A; --surface: #1A1E27; --ink: #E7E9EF; --muted: #9AA3B5; --line: #2C3240;
+    --accent: #93A9F5; --accent-ink: #10131A; --accent-soft: #232B42; --hl: rgba(255, 210, 60, .30);
+    --ok: #7CCB9A; --ok-soft: #1C2E24; --warn: #F2B866; --warn-soft: #33281A; --danger: #FF8A80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11141A; --surface: #1A1E27; --ink: #E7E9EF; --muted: #9AA3B5; --line: #2C3240;
+  --accent: #93A9F5; --accent-ink: #10131A; --accent-soft: #232B42; --hl: rgba(255, 210, 60, .30);
+  --ok: #7CCB9A; --ok-soft: #1C2E24; --warn: #F2B866; --warn-soft: #33281A; --danger: #FF8A80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.2; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mark { background: linear-gradient(transparent 52%, var(--hl) 52%, var(--hl) 92%, transparent 92%); padding: 0 .1em; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; margin-bottom: 20px; }
+header.top h1 { font-size: 1.75rem; font-weight: 700; }
+.status { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.on { background: var(--ok); }
+
+.layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 760px) { .layout { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+
+.shelf { display: flex; flex-direction: column; gap: 6px; }
+.shelf-label { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.shelf-list { display: flex; flex-direction: column; gap: 4px; }
+@media (max-width: 760px) {
+  .shelf-list { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+  .shelf-list .book-btn { min-width: 180px; }
+}
+.book-btn { text-align: left; background: transparent; border: 1px solid transparent; border-radius: var(--r); padding: 8px 10px; display: flex; flex-direction: column; gap: 1px; }
+.book-btn:hover { background: var(--surface); border-color: var(--line); }
+.book-btn.active { background: var(--surface); border-color: var(--accent); }
+.book-btn .t { font-family: var(--font-display); font-weight: 600; font-size: .95rem; line-height: 1.25; }
+.book-btn .m { font-size: .75rem; color: var(--muted); }
+.new-btn { margin-top: 6px; border: 1px dashed var(--line); background: transparent; border-radius: var(--r); padding: 8px 10px; color: var(--accent); font-weight: 500; text-align: left; }
+.new-btn:hover { border-color: var(--accent); }
+
+.notebook { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; min-width: 0; }
+.nb-head { padding: 20px 24px 0; display: flex; flex-direction: column; gap: 4px; }
+.nb-head .eyebrow { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.nb-head h2 { font-size: 1.6rem; font-weight: 700; }
+.nb-head .author { color: var(--muted); font-family: var(--font-display); font-style: italic; }
+.tabs { display: flex; gap: 4px; padding: 14px 20px 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { border: none; background: none; padding: 8px 10px 10px; border-bottom: 2px solid transparent; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.nb-body { padding: 20px 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+@media (max-width: 520px) { .nb-head { padding: 16px 16px 0; } .tabs { padding-inline: 10px; } .nb-body { padding: 16px; } }
+
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; letter-spacing: .02em; text-transform: none; }
+.pill.example { background: var(--warn-soft); color: var(--warn); }
+.pill.new { background: var(--warn-soft); color: var(--warn); }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.info { background: var(--accent-soft); color: var(--accent); }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 14px; font-weight: 500; font-size: .9rem; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--ink); }
+.btn.danger { color: var(--danger); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.callout { border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; background: var(--bg); }
+.callout p { margin: 0; font-size: .9rem; min-width: 0; flex: 1 1 260px; }
+.callout.warn { background: var(--warn-soft); border-color: transparent; }
+
+.thesis { font-family: var(--font-display); font-size: 1.3rem; line-height: 1.45; margin: 0; max-width: 62ch; }
+.label { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+
+.progress { display: flex; align-items: center; gap: 10px; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { flex: 0 0 140px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ok); }
+
+.themes { display: flex; flex-direction: column; gap: 16px; }
+.theme { border-top: 1px solid var(--line); padding-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 14px 28px; }
+@media (max-width: 900px) { .theme { grid-template-columns: minmax(0, 1fr); } }
+.theme h3 { font-size: 1.2rem; font-weight: 600; grid-column: 1 / -1; }
+.theme .explain { margin: 0; max-width: 62ch; }
+.theme dl { margin: 10px 0 0; display: flex; flex-direction: column; gap: 10px; max-width: 62ch; }
+.theme dt { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.theme dd { margin: 2px 0 0; }
+.practice { background: var(--accent-soft); border-radius: var(--r); padding: 12px 14px; align-self: start; display: flex; flex-direction: column; gap: 8px; }
+.practice .label { color: var(--accent); margin: 0; }
+.action { display: flex; gap: 10px; align-items: flex-start; font-size: .92rem; }
+.action input { margin-top: 4px; accent-color: var(--ok); width: 16px; height: 16px; flex: none; }
+.action .when { display: block; font-size: .78rem; color: var(--muted); }
+.action.done span.txt { text-decoration: line-through; color: var(--muted); }
+details.quotes { grid-column: 1 / -1; }
+details.quotes summary { cursor: pointer; font-size: .85rem; color: var(--accent); font-weight: 500; }
+.quote { font-family: var(--font-display); margin: 10px 0 0; padding-left: 14px; border-left: 2px solid var(--line); max-width: 62ch; }
+.loc { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+@media (max-width: 900px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.box { border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; min-width: 0; }
+.box ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.cards { display: flex; flex-direction: column; gap: 8px; }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; text-align: left; background: var(--surface); width: 100%; }
+.card .q { font-weight: 500; }
+.card .a { margin-top: 6px; color: var(--muted); }
+.card .hint { font-size: .75rem; color: var(--accent); margin-top: 4px; }
+
+.hl-list { display: flex; flex-direction: column; }
+.hl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.hl:last-child { border-bottom: none; }
+.hl .text { font-family: var(--font-display); max-width: 66ch; }
+.hl .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.hl .note { font-size: .88rem; color: var(--muted); }
+.hl .note b { color: var(--ink); font-weight: 600; }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: .82rem; font-weight: 600; }
+.field .help { font-size: .8rem; color: var(--muted); }
+input[type="text"], textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 8px 10px; }
+textarea { min-height: 160px; resize: vertical; font-family: var(--font-display); }
+.drop { border: 1px dashed var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.found { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.found-item { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.found-item .t { font-family: var(--font-display); font-weight: 600; min-width: 0; }
+details.howto summary { cursor: pointer; font-weight: 500; }
+details.howto ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: .9rem; display: flex; flex-direction: column; gap: 4px; }
+
+.gen { display: flex; flex-direction: column; gap: 8px; }
+.gen-out { font-family: var(--font-mono); font-size: .75rem; color: var(--muted); max-height: 120px; overflow: auto; white-space: pre-wrap; word-break: break-word; background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+.spinner { width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+.empty { text-align: left; color: var(--muted); padding: 8px 0; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: .88rem; max-width: calc(100% - 32px); }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Subrayados <span class="mark">en práctica</span></h1>
+    <div class="status" id="status"><span class="dot"></span><span>Cargando…</span></div>
+  </header>
+  <div class="layout">
+    <aside class="shelf" id="shelf"></aside>
+    <main class="notebook" id="nb"></main>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- Ejemplo (Marco Aurelio, dominio público; traducción libre) ---------- */
+const EXAMPLE = {
+  id: "ejemplo", isExample: true,
+  title: "Meditaciones", author: "Marco Aurelio",
+  goal: "Mantener la calma en el trabajo cuando las cosas se complican",
+  nextId: 7,
+  highlights: [
+    { id: "h1", loc: "Libro II, 1", text: "Al amanecer, dite a ti mismo: hoy me encontraré con gente entrometida, ingrata, arrogante. Nada de eso puede dañarme, porque nadie puede arrastrarme a lo que es vergonzoso." },
+    { id: "h2", loc: "Libro IV, 3", text: "Los hombres buscan retiros en el campo, en la costa, en los montes. Pero en ningún lugar se retira uno con más tranquilidad que dentro de su propia alma." },
+    { id: "h3", loc: "Libro IV, 7", text: "Quita la opinión y habrás quitado el «me han hecho daño». Quita el «me han hecho daño» y habrás quitado el daño.", note: "Esto me sirve para las reuniones difíciles." },
+    { id: "h4", loc: "Libro V, 1", text: "Por la mañana, cuando te cueste levantarte, ten presente: me levanto para hacer el trabajo de un ser humano." },
+    { id: "h5", loc: "Libro VI, 6", text: "La mejor manera de vengarte es no parecerte a quien te hizo el daño." },
+    { id: "h6", loc: "Libro VIII, 36", text: "No te dejes perturbar imaginando tu vida entera. No pienses en todas las dificultades que pueden venir; pregúntate en cada caso presente: ¿qué hay aquí que sea insoportable?" }
+  ],
+  summarized: ["h1","h2","h3","h4","h5","h6"],
+  done: { a2: true },
+  summary: {
+    idea_central: "No controlas lo que pasa ni lo que hacen los demás, pero sí cómo lo interpretas y cómo respondes. Ahí está tu calma.",
+    temas: [
+      { id: "t1", titulo: "El daño está en la interpretación", explicacion: "Muchas veces lo que nos molesta no es el hecho, sino la historia que nos contamos sobre él. Si separas el hecho de tu juicio, la emoción pierde fuerza.", por_que_importa: "Te permite responder con claridad en lugar de reaccionar en caliente.", ejemplo: "Un colega critica tu informe en una reunión. Hecho: señaló dos errores. Juicio: «me dejó en ridículo». Quédate con el hecho y corrige los dos errores.", subrayados: ["h3","h5"],
+        acciones: [ { id: "a1", texto: "Escribir «hecho / mi juicio» en dos columnas la próxima vez que algo te moleste", cuando: "En el momento, o al final del día" }, { id: "a2", texto: "Antes de responder un correo que te irrita, esperar 10 minutos", cuando: "Esta semana" } ] },
+      { id: "t2", titulo: "Prepararse para el día", explicacion: "Marco Aurelio empezaba el día anticipando que habría gente difícil. No para amargarse, sino para que no le tomara por sorpresa.", por_que_importa: "Lo que anticipas te altera menos.", ejemplo: "Antes de abrir el correo, piensa en qué reunión o persona puede ponerte a prueba hoy y cómo quieres comportarte.", subrayados: ["h1","h4"],
+        acciones: [ { id: "a3", texto: "Dedicar 2 minutos cada mañana a nombrar un desafío del día y tu respuesta ideal", cuando: "Cada mañana, antes del correo" } ] },
+      { id: "t3", titulo: "Un problema a la vez", explicacion: "Imaginar todas las dificultades juntas abruma. Lo presente casi siempre es manejable.", por_que_importa: "Reduce la ansiedad y te devuelve a la acción concreta.", ejemplo: "Ante un proyecto que se atrasa, en vez de pensar en todo lo que puede salir mal, define la siguiente tarea de 30 minutos.", subrayados: ["h6","h2"],
+        acciones: [ { id: "a4", texto: "Cuando te sientas abrumado, escribir solo la próxima acción concreta", cuando: "Cuando aparezca la sensación" } ] }
+    ],
+    preguntas: [ "¿Qué situación de esta semana te afectó más por tu interpretación que por el hecho en sí?", "¿Dónde está tu «retiro interior» cuando el trabajo se pone tenso?" ],
+    repaso: [ { pregunta: "Según Marco Aurelio, ¿qué hay que quitar para quitar el daño?", respuesta: "La opinión o el juicio sobre lo que pasó." }, { pregunta: "¿Qué pregunta propone ante las dificultades?", respuesta: "¿Qué hay aquí, en el presente, que sea insoportable?" } ]
+  }
+};
+
+/* ---------- Estado ---------- */
+const S = {
+  books: {}, currentId: null, tab: "resumen",
+  mode: "loading", db: null, uid: null, sample: null, sampleOff: false,
+  draft: "", newBook: null, found: null, flipped: {}, confirmDelete: null,
+  gen: null, example: JSON.parse(JSON.stringify(EXAMPLE))
+};
+const LS_KEY = "subrayados.v1";
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 3200);
+}
+function hash(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; return h.toString(36); }
+const norm = (s) => s.toLowerCase().replace(/\s+/g, " ").trim();
+
+function bookList() { return Object.values(S.books).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)); }
+function current() {
+  if (S.currentId === "ejemplo" || !Object.keys(S.books).length) return S.example;
+  return S.books[S.currentId] || bookList()[0];
+}
+
+/* ---------- Guardado ---------- */
+function saveLocal() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(S.books)); } catch (e) {}
+}
+function loadLocal() {
+  try { const v = JSON.parse(localStorage.getItem(LS_KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; }
+}
+const timers = {}, dirty = {}, chains = {};
+function col() { return S.db.collection("data/users/" + S.uid); }
+function persist(book) {
+  if (book.isExample) return;
+  book.updatedAt = Date.now();
+  if (S.mode !== "cuenta") { saveLocal(); return; }
+  dirty[book.id] = true;
+  clearTimeout(timers[book.id]);
+  timers[book.id] = setTimeout(() => { delete timers[book.id]; flush(book.id); }, 400);
+}
+function flush(id) {
+  chains[id] = (chains[id] || Promise.resolve()).then(async () => {
+    if (!dirty[id]) return;
+    dirty[id] = false;
+    const b = S.books[id]; if (!b) return;
+    const body = JSON.parse(JSON.stringify(b));
+    if (JSON.stringify(body).length > 250000) { toast("Este libro tiene demasiados subrayados para guardarlo entero. Borra algunos."); return; }
+    try { await col().doc(id).set(body); }
+    catch (e) {
+      if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 800 + Math.random() * 800)); try { await col().doc(id).set(body); return; } catch (e2) {} }
+      toast(e && e.code === "quota_exceeded" ? "No queda espacio para guardar. Borra un libro que ya no uses." : "No se pudo guardar el último cambio. Revisa tu conexión.");
+    }
+  });
+}
+async function removeBook(id) {
+  delete S.books[id];
+  if (S.mode === "cuenta") { try { await col().doc(id).delete(); } catch (e) { toast("No se pudo borrar el libro."); } }
+  else saveLocal();
+}
+
+/* ---------- Libros y subrayados ---------- */
+function makeBook(title, author, goal) {
+  const id = "b-" + hash(norm(title) + "|" + Date.now());
+  return { id, title: title.trim(), author: (author || "").trim(), goal: (goal || "").trim(), highlights: [], summarized: [], done: {}, summary: null, nextId: 1, createdAt: Date.now(), updatedAt: Date.now() };
+}
+function findBookByTitle(title) {
+  const t = norm(title); return Object.values(S.books).find(b => norm(b.title) === t);
+}
+/* Agrega con deduplicación: Kindle guarda una copia nueva cada vez que extiendes un subrayado. */
+function addHighlights(book, items) {
+  let added = 0;
+  for (const it of items) {
+    const text = (it.text || "").trim(); if (!text && !it.note) continue;
+    if (!text && it.note) {
+      const target = [...book.highlights].reverse().find(h => it.loc && h.loc && locMatch(h.loc, it.loc));
+      if (target) { target.note = target.note ? target.note + " / " + it.note : it.note; continue; }
+    }
+    const n = norm(text);
+    const dupe = text && book.highlights.find(h => { const hn = norm(h.text); return hn === n || hn.includes(n) || n.includes(hn); });
+    if (dupe) {
+      if (n.length > norm(dupe.text).length) {
+        dupe.text = text; if (it.loc) dupe.loc = it.loc;
+        book.summarized = book.summarized.filter(x => x !== dupe.id);
+      }
+      if (it.note && !dupe.note) dupe.note = it.note;
+      continue;
+    }
+    book.highlights.push({ id: "h" + (book.nextId++), text, loc: it.loc || "", note: it.note || "", addedAt: Date.now() });
+    added++;
+  }
+  return added;
+}
+function locMatch(a, b) {
+  const nums = (s) => (String(s).match(/\d+/g) || []).map(Number);
+  const [a1, a2] = nums(a), [b1] = nums(b);
+  if (a1 == null || b1 == null) return false;
+  return b1 >= a1 && b1 <= (a2 ?? a1) + 1;
+}
+
+/* ---------- Lectura de My Clippings.txt (Kindle, español e inglés) ---------- */
+function parseClippings(raw) {
+  const books = {};
+  raw.replace(/^﻿/, "").split(/\r?\n?==========\r?\n?/).forEach(block => {
+    const lines = block.split(/\r?\n/).map(l => l.replace(/^﻿/, ""));
+    while (lines.length && !lines[0].trim()) lines.shift();
+    if (lines.length < 2) return;
+    const head = lines[0].trim(), meta = lines[1].trim();
+    const text = lines.slice(2).join("\n").trim();
+    if (/bookmark|marcador|signet|lesezeichen/i.test(meta)) return;
+    const isNote = /\bnote\b|\bnota\b/i.test(meta) && !/highlight|subrayado|resaltado/i.test(meta);
+    let title = head, author = "";
+    const m = head.match(/^(.*)\(([^()]*)\)\s*$/);
+    if (m) { title = m[1].trim(); author = m[2].trim(); }
+    const pos = meta.match(/(?:location|posición|posicion|ubicación|ubicacion|loc\.)\s*([\d]+(?:-\d+)?)/i);
+    const page = meta.match(/(?:page|página|pagina)\s*([\divxlc]+(?:-[\divxlc]+)?)/i);
+    const loc = pos ? "Pos. " + pos[1] : page ? "Pág. " + page[1] : "";
+    const key = norm(title);
+    books[key] = books[key] || { title, author, items: [] };
+    if (isNote) books[key].items.push({ text: "", note: text, loc });
+    else books[key].items.push({ text, loc });
+  });
+  return Object.values(books).map(b => ({ ...b, count: b.items.filter(i => i.text).length })).filter(b => b.items.length);
+}
+function parsePasted(raw) {
+  if (/==========/.test(raw)) return null; // es un My Clippings pegado
+  const chunks = /\n\s*\n/.test(raw) ? raw.split(/\n\s*\n/) : raw.split(/\n/);
+  return chunks.map(c => c.trim()).filter(c => c.length > 2).map(c => {
+    const m = c.match(/^\s*(?:\[?(p(?:á|a)g\.?|pos\.?|loc\.?)\s*([\d-]+)\]?[:.)\-–\s]+)/i);
+    return m ? { text: c.slice(m[0].length).trim(), loc: (/^p/i.test(m[1]) ? "Pág. " : "Pos. ") + m[2] } : { text: c.replace(/^[-•*"“]\s*|["”]$/g, "").trim() };
+  });
+}
+
+/* ---------- Resumen con Claude ---------- */
+function pendingIds(book) { const s = new Set(book.summarized); return book.highlights.filter(h => !s.has(h.id)).map(h => h.id); }
+
+function buildPrompt(book, mode) {
+  const s = new Set(book.summarized);
+  const list = mode === "update" ? book.highlights.filter(h => !s.has(h.id)) : book.highlights;
+  let budget = 150000, lines = [];
+  for (const h of list) {
+    const line = `[${h.id}]${h.loc ? " (" + h.loc + ")" : ""} ${h.text}${h.note ? "\n   Nota del lector: " + h.note : ""}`;
+    if ((budget -= line.length) < 0) break;
+    lines.push(line);
+  }
+  const goal = book.goal || "entender las ideas y aplicarlas en su vida diaria y su trabajo";
+  const shape = `{"idea_central":"...","temas":[{"id":"t1","titulo":"...","explicacion":"...","por_que_importa":"...","ejemplo":"...","subrayados":["h1","h4"],"acciones":[{"id":"a1","texto":"...","cuando":"..."}]}],"preguntas":["..."],"repaso":[{"pregunta":"...","respuesta":"..."}]}`;
+  let p = `Eres un buen profesor. Conviertes los subrayados de un libro en un resumen didáctico, en español, que el lector pueda leer en pocos minutos y poner en práctica.
+
+Libro: ${book.title}${book.author ? " — " + book.author : ""}
+Objetivo del lector: ${goal}
+`;
+  if (mode === "update" && book.summary) {
+    p += `
+Ya existe este resumen (JSON):
+${JSON.stringify(book.summary)}
+
+Intégrale SOLO los subrayados nuevos de abajo: amplía los temas existentes cuando corresponda o crea temas nuevos. No borres contenido válido. Conserva los "id" de los temas y acciones que sigan existiendo y usa ids nuevos (que no existan aún) para temas y acciones nuevas. Puedes reescribir la idea central si los nuevos subrayados la cambian.
+`;
+  }
+  p += `
+Subrayados${mode === "update" ? " nuevos" : ""} (el id va entre corchetes):
+${lines.join("\n")}
+
+Reglas:
+- Lenguaje simple y cercano, frases cortas, como si se lo explicaras a un amigo.
+- Agrupa por ideas, no por orden de aparición: entre 3 y 8 temas.
+- Cada tema: "explicacion" de 2 a 4 frases; "por_que_importa" en 1 frase; "ejemplo" concreto y ligado al objetivo del lector; de 1 a 3 "acciones" concretas y verificables (empiezan con un verbo en infinitivo) y "cuando" dice en qué momento hacerlas.
+- En "subrayados" pon los ids que respaldan el tema. Usa solo ids que aparecen arriba${mode === "update" ? " o que ya estaban en el resumen" : ""}.
+- No atribuyas al libro ideas que no estén en los subrayados; si agregas algo tuyo, que sea como sugerencia práctica.
+- De 2 a 4 "preguntas" de reflexión personal y de 3 a 6 tarjetas de "repaso" (pregunta corta, respuesta corta).
+
+Responde solo con JSON con esta forma:
+${shape}`;
+  return { prompt: p, used: list.slice(0, lines.length).map(h => h.id) };
+}
+
+function cleanSummary(raw, book) {
+  if (!raw || typeof raw !== "object" || !Array.isArray(raw.temas)) throw { code: "invalid_json" };
+  const valid = new Set(book.highlights.map(h => h.id));
+  const usedT = new Set(), usedA = new Set();
+  let tn = 1, an = 1;
+  const uniq = (id, set, prefix, next) => { id = String(id || ""); if (!/^[\w-]{1,24}$/.test(id) || set.has(id)) { do { id = prefix + next(); } while (set.has(id)); } set.add(id); return id; };
+  return {
+    idea_central: String(raw.idea_central || ""),
+    temas: raw.temas.filter(t => t && t.titulo).map(t => ({
+      id: uniq(t.id, usedT, "t", () => tn++),
+      titulo: String(t.titulo), explicacion: String(t.explicacion || ""), por_que_importa: String(t.por_que_importa || ""), ejemplo: String(t.ejemplo || ""),
+      subrayados: (Array.isArray(t.subrayados) ? t.subrayados : []).map(String).filter(id => valid.has(id)),
+      acciones: (Array.isArray(t.acciones) ? t.acciones : []).filter(a => a && a.texto).map(a => ({ id: uniq(a.id, usedA, "a", () => an++), texto: String(a.texto), cuando: String(a.cuando || "") }))
+    })),
+    preguntas: (Array.isArray(raw.preguntas) ? raw.preguntas : []).map(String),
+    repaso: (Array.isArray(raw.repaso) ? raw.repaso : []).filter(r => r && r.pregunta).map(r => ({ pregunta: String(r.pregunta), respuesta: String(r.respuesta || "") }))
+  };
+}
+
+const ERR = {
+  not_granted: "No diste permiso para usar Claude en esta página. Puedes activarlo en el menú de permisos de la página.",
+  sampling_disabled: "Claude no está disponible para tu cuenta.",
+  rate_limited: "Llegaste al límite de uso por ahora. Intenta de nuevo en un rato.",
+  session_expired: "Tu sesión expiró. Vuelve a iniciar sesión en Claude.",
+  prompt_too_large: "Hay demasiados subrayados para una sola vez. Prueba «Actualizar» con menos subrayados nuevos.",
+  invalid_json: "La respuesta llegó incompleta. Intenta de nuevo.",
+  refused: "Claude no pudo resumir este contenido.",
+  empty_completion: "La respuesta llegó vacía. Intenta de nuevo."
+};
+async function generate(mode) {
+  const book = current();
+  if (!S.sample || S.gen || book.isExample) return;
+  const { prompt, used } = buildPrompt(book, mode);
+  if (!used.length) { toast("No hay subrayados para resumir."); return; }
+  const ctl = new AbortController();
+  S.gen = { bookId: book.id, ctl, text: "", mode };
+  render();
+  try {
+    const raw = await S.sample.json(prompt, {
+      signal: ctl.signal, cache: false,
+      onText: ({ text }) => { if (S.gen) { S.gen.text = text; const o = $("#gen-out"); if (o) { o.textContent = text.slice(-600); o.scrollTop = o.scrollHeight; } const c = $("#gen-count"); if (c) c.textContent = text.length.toLocaleString("es") + " caracteres"; } }
+    });
+    const b = S.books[book.id]; if (!b) return;
+    b.summary = cleanSummary(raw, b);
+    b.summarized = mode === "update" ? Array.from(new Set([...b.summarized, ...used])) : used;
+    const live = new Set(b.summary.temas.flatMap(t => t.acciones.map(a => a.id)));
+    for (const k of Object.keys(b.done || {})) if (!live.has(k)) delete b.done[k];
+    persist(b);
+    toast(mode === "update" ? "Resumen actualizado." : "Resumen listo.");
+  } catch (e) {
+    const code = e && e.code;
+    if (code === "not_granted" || code === "sampling_disabled" || code === "not_declared" || code === "capability_disabled" || code === "capability_removed") S.sampleOff = true;
+    if (code !== "cancelled") toast(ERR[code] || "Algo falló al hablar con Claude. Intenta de nuevo.");
+  } finally {
+    S.gen = null; S.tab = "resumen"; render();
+  }
+}
+
+function summaryMarkdown(book) {
+  const s = book.summary; if (!s) return "";
+  const byId = Object.fromEntries(book.highlights.map(h => [h.id, h]));
+  let md = `# ${book.title}${book.author ? " — " + book.author : ""}\n\n**Idea central:** ${s.idea_central}\n`;
+  for (const t of s.temas) {
+    md += `\n## ${t.titulo}\n\n${t.explicacion}\n\n**Por qué importa:** ${t.por_que_importa}\n\n**Ejemplo:** ${t.ejemplo}\n\n**Ponlo en práctica:**\n`;
+    for (const a of t.acciones) md += `- [${book.done?.[a.id] ? "x" : " "}] ${a.texto}${a.cuando ? " _(" + a.cuando + ")_" : ""}\n`;
+    const qs = t.subrayados.map(id => byId[id]).filter(Boolean);
+    if (qs.length) md += `\n` + qs.map(h => `> ${h.text}${h.loc ? " (" + h.loc + ")" : ""}`).join("\n>\n") + "\n";
+  }
+  if (s.preguntas.length) md += `\n## Para reflexionar\n\n` + s.preguntas.map(q => `- ${q}`).join("\n") + "\n";
+  if (s.repaso.length) md += `\n## Repaso\n\n` + s.repaso.map(r => `- **${r.pregunta}** ${r.respuesta}`).join("\n") + "\n";
+  return md;
+}
+
+/* ---------- Render ---------- */
+function renderStatus() {
+  const el = $("#status");
+  const txt = { loading: "Conectando…", cuenta: "Guardado en tu cuenta", local: "Guardado solo en este navegador" }[S.mode];
+  el.innerHTML = `<span class="dot ${S.mode === "cuenta" ? "on" : ""}"></span><span>${txt}</span>`;
+}
+function renderShelf() {
+  const books = bookList();
+  const cur = current();
+  const items = books.length ? books : [S.example];
+  $("#shelf").innerHTML = `
+    <div class="shelf-label">Tus libros</div>
+    <div class="shelf-list">
+      ${items.map(b => {
+        const pend = b.isExample ? 0 : pendingIds(b).length;
+        return `<button class="book-btn ${b.id === cur.id && !S.newBook ? "active" : ""}" data-book="${esc(b.id)}">
+          <span class="t">${esc(b.title)}</span>
+          <span class="m">${b.isExample ? "Ejemplo · " : ""}${b.highlights.length} subrayados${pend ? ` · ${pend} nuevos` : ""}</span>
+        </button>`;
+      }).join("")}
+    </div>
+    <button class="new-btn" data-act="new-book">+ Agregar un libro</button>`;
+}
+
+function renderNewBookForm() {
+  const nb = S.newBook;
+  return `
+  <div class="nb-head"><div class="eyebrow">Nuevo libro</div><h2>¿Qué estás leyendo?</h2></div>
+  <form class="nb-body" id="new-form" autocomplete="off">
+    <div class="field"><label for="nb-title">Título</label><input type="text" id="nb-title" required value="${esc(nb.title)}" placeholder="Ej.: Hábitos atómicos"></div>
+    <div class="field"><label for="nb-author">Autor</label><input type="text" id="nb-author" value="${esc(nb.author)}" placeholder="Ej.: James Clear"></div>
+    <div class="field"><label for="nb-goal">¿Para qué quieres aplicar este libro?</label><input type="text" id="nb-goal" value="${esc(nb.goal)}" placeholder="Ej.: organizar mejor mi semana de trabajo y estudio">
+      <span class="help">Claude usa esto para elegir ejemplos y acciones que te sirvan a ti.</span></div>
+    <div class="row"><button class="btn primary" type="submit">Crear libro</button><button class="btn ghost" type="button" data-act="cancel-new">Cancelar</button></div>
+    <p class="help" style="margin:0;color:var(--muted);font-size:.85rem">¿Usas Kindle? Puedes saltarte este paso: crea cualquier libro, ve a «Agregar» y sube tu archivo My Clippings.txt. Ahí aparecerán todos tus libros.</p>
+  </form>`;
+}
+
+function renderSummary(book) {
+  const s = book.summary;
+  const pend = book.isExample ? 0 : pendingIds(book).length;
+  const canGen = !!S.sample && !S.sampleOff && !book.isExample;
+  let top = "";
+  if (S.gen && S.gen.bookId === book.id) {
+    top = `<div class="callout gen" style="flex-direction:column;align-items:stretch">
+      <div class="row" style="justify-content:space-between"><span class="row"><span class="spinner" aria-hidden="true"></span> <b>${S.gen.mode === "update" ? "Actualizando el resumen…" : "Escribiendo tu resumen…"}</b> <span class="loc" id="gen-count">${S.gen.text ? S.gen.text.length + " caracteres" : "Pensando…"}</span></span>
+      <button class="btn" data-act="stop">Detener</button></div>
+      <div class="gen-out" id="gen-out">${esc(S.gen.text.slice(-600))}</div>
+      <span class="loc">Suele tardar entre 30 segundos y 2 minutos.</span></div>`;
+  } else if (book.isExample) {
+    top = `<div class="callout warn"><p><b>Este es un ejemplo.</b> Así se verá el resumen de tu libro: temas explicados en simple, acciones para marcar y tarjetas de repaso.</p><button class="btn primary" data-act="new-book">Agregar mi libro</button></div>`;
+  } else if (!book.highlights.length) {
+    top = `<div class="callout"><p>Todavía no hay subrayados en este libro. Agrégalos y luego genera el resumen.</p><button class="btn primary" data-tab="agregar">Agregar subrayados</button></div>`;
+  } else if (!s) {
+    top = `<div class="callout"><p>Tienes <b>${book.highlights.length}</b> subrayados. Claude los agrupará en ideas, las explicará en simple y te propondrá acciones concretas.</p>${canGen ? `<button class="btn primary" data-act="gen-full">Generar resumen</button>` : ""}</div>`;
+  } else if (pend) {
+    top = `<div class="callout warn"><p><b>${pend} subrayado${pend > 1 ? "s" : ""} nuevo${pend > 1 ? "s" : ""}</b> desde el último resumen. Al actualizar se suman sin perder lo que ya marcaste.</p>${canGen ? `<button class="btn primary" data-act="gen-update">Actualizar resumen</button>` : ""}</div>`;
+  }
+  if (!S.sample && !book.isExample && (pend || !s) && book.highlights.length && !S.gen) top += `<p class="loc" style="margin:0">Para generar resúmenes abre esta página dentro de Claude y permite que use tu cuenta.</p>`;
+  if (S.sampleOff && !book.isExample) top += `<p class="loc" style="margin:0">El acceso a Claude está desactivado para esta página. Actívalo en el menú de permisos y recarga.</p>`;
+
+  if (!s) return top;
+  const byId = Object.fromEntries(book.highlights.map(h => [h.id, h]));
+  const actions = s.temas.flatMap(t => t.acciones);
+  const doneN = actions.filter(a => book.done?.[a.id]).length;
+  const pct = actions.length ? Math.round(doneN / actions.length * 100) : 0;
+  return `${top}
+  <section>
+    <div class="label">La idea central</div>
+    <p class="thesis">${esc(s.idea_central)}</p>
+  </section>
+  <div class="row" style="justify-content:space-between">
+    <div class="progress"><span class="bar"><i style="width:${pct}%"></i></span> ${doneN} de ${actions.length} acciones hechas</div>
+    <div class="row">
+      <button class="btn ghost" data-act="copy">Copiar resumen</button>
+      ${canGen && !S.gen ? `<button class="btn ghost" data-act="gen-full">Rehacer desde cero</button>` : ""}
+    </div>
+  </div>
+  <div class="themes">
+    ${s.temas.map(t => {
+      const qs = t.subrayados.map(id => byId[id]).filter(Boolean);
+      return `<article class="theme">
+        <h3>${esc(t.titulo)}</h3>
+        <div>
+          <p class="explain">${esc(t.explicacion)}</p>
+          <dl>
+            ${t.por_que_importa ? `<div><dt>Por qué importa</dt><dd>${esc(t.por_que_importa)}</dd></div>` : ""}
+            ${t.ejemplo ? `<div><dt>Ejemplo</dt><dd>${esc(t.ejemplo)}</dd></div>` : ""}
+          </dl>
+        </div>
+        ${t.acciones.length ? `<div class="practice"><div class="label">Ponlo en práctica</div>
+          ${t.acciones.map(a => `<label class="action ${book.done?.[a.id] ? "done" : ""}"><input type="checkbox" id="act-${esc(book.id)}-${esc(a.id)}" data-action="${esc(a.id)}" ${book.done?.[a.id] ? "checked" : ""}><span><span class="txt">${esc(a.texto)}</span>${a.cuando ? `<span class="when">${esc(a.cuando)}</span>` : ""}</span></label>`).join("")}
+        </div>` : ""}
+        ${qs.length ? `<details class="quotes"><summary>Ver lo que subrayaste (${qs.length})</summary>
+          ${qs.map(h => `<blockquote class="quote"><span class="mark">${esc(h.text)}</span>${h.loc ? ` <span class="loc">${esc(h.loc)}</span>` : ""}</blockquote>`).join("")}
+        </details>` : ""}
+      </article>`;
+    }).join("")}
+  </div>
+  <div class="two">
+    ${s.preguntas.length ? `<div class="box"><div class="label">Para reflexionar</div><ol>${s.preguntas.map(q => `<li>${esc(q)}</li>`).join("")}</ol></div>` : ""}
+    ${s.repaso.length ? `<div class="box"><div class="label">Repaso rápido</div><div class="cards">
+      ${s.repaso.map((r, i) => { const k = book.id + ":" + i; return `<button class="card" data-flip="${esc(k)}"><div class="q">${esc(r.pregunta)}</div>${S.flipped[k] ? `<div class="a">${esc(r.respuesta)}</div>` : `<div class="hint">Toca para ver la respuesta</div>`}</button>`; }).join("")}
+    </div></div>` : ""}
+  </div>
+  <div class="field" style="max-width:520px">
+    <label for="goal-${esc(book.id)}">Tu objetivo con este libro</label>
+    <input type="text" id="goal-${esc(book.id)}" data-goal value="${esc(book.goal)}" placeholder="Ej.: liderar mejor a mi equipo" ${book.isExample ? "disabled" : ""}>
+    <span class="help">Si lo cambias, usa «Rehacer desde cero» para que los ejemplos se ajusten.</span>
+  </div>`;
+}
+
+function renderHighlights(book) {
+  if (!book.highlights.length) return `<p class="empty">Aún no hay subrayados. Ve a «Agregar» para traerlos.</p>`;
+  const sum = new Set(book.summarized);
+  return `<div class="hl-list">${[...book.highlights].reverse().map(h => `
+    <div class="hl">
+      <div class="text"><span class="mark">${esc(h.text)}</span></div>
+      ${book.isExample ? "<span></span>" : `<button class="btn ghost" data-del="${esc(h.id)}" aria-label="Borrar subrayado">Borrar</button>`}
+      <div class="meta">${h.loc ? `<span class="loc">${esc(h.loc)}</span>` : ""}${!sum.has(h.id) ? `<span class="pill new">Nuevo</span>` : ""}</div>
+      ${h.note ? `<div class="note" style="grid-column:1/-1"><b>Tu nota:</b> ${esc(h.note)}</div>` : ""}
+    </div>`).join("")}</div>`;
+}
+
+function renderAdd(book) {
+  if (book.isExample) return `<div class="callout warn"><p>Este es el libro de ejemplo. Crea tu propio libro para agregar subrayados.</p><button class="btn primary" data-act="new-book">Agregar mi libro</button></div>`;
+  const found = S.found;
+  return `
+  <section class="field">
+    <label for="paste">Pega tus subrayados</label>
+    <span class="help">Uno por párrafo (deja una línea en blanco entre cada uno). Si empiezas con «Pág. 23:» o «Pos. 1200:», guardamos la ubicación. También puedes pegar el contenido completo de My Clippings.txt.</span>
+    <textarea id="paste" placeholder="Pág. 45: La disciplina es elegir entre lo que quieres ahora y lo que más quieres.&#10;&#10;Pág. 52: …">${esc(S.draft)}</textarea>
+    <div class="row"><button class="btn primary" data-act="add-paste">Agregar a «${esc(book.title)}»</button></div>
+  </section>
+  <section class="drop" id="drop">
+    <b>¿Tienes Kindle?</b>
+    <span class="help" style="color:var(--muted);font-size:.88rem">Sube el archivo <span class="loc">My Clippings.txt</span> y elige qué libro importar. Si lo vuelves a subir más adelante, solo se suman los subrayados nuevos.</span>
+    <label class="btn" for="file">Elegir archivo</label>
+    <input type="file" id="file" accept=".txt,text/plain" hidden>
+    ${found ? `<div class="found">${found.length ? found.map((f, i) => {
+      const existing = findBookByTitle(f.title);
+      return `<div class="found-item"><span class="t">${esc(f.title)}${f.author ? ` <span class="loc">${esc(f.author)}</span>` : ""}</span>
+        <span class="row"><span class="loc">${f.count} subrayados</span>
+        <button class="btn" data-import="${i}">${existing ? "Sumar a este libro" : "Importar como libro nuevo"}</button></span></div>`;
+    }).join("") : `<p class="empty">No encontramos subrayados en ese archivo. ¿Es el My Clippings.txt de tu Kindle?</p>`}</div>` : ""}
+  </section>
+  <details class="howto"><summary>Cómo sacar tus subrayados</summary>
+    <ul>
+      <li><b>Kindle (aparato):</b> conéctalo por USB a tu computador, abre la carpeta <span class="loc">documents</span> y copia <span class="loc">My Clippings.txt</span>.</li>
+      <li><b>App de Kindle:</b> abre el libro, ve a «Notas y subrayados», selecciona y copia el texto, y pégalo arriba.</li>
+      <li><b>Apple Books, Google Play Libros, PDF:</b> copia tus subrayados y pégalos arriba, uno por párrafo.</li>
+      <li><b>Libro en papel:</b> escribe o dicta las frases que marcaste. Agrega la página al inicio si quieres.</li>
+    </ul>
+  </details>
+  <section class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:16px">
+    <span class="loc">${book.highlights.length} subrayados · creado ${new Date(book.createdAt || Date.now()).toLocaleDateString("es")}</span>
+    ${S.confirmDelete === book.id
+      ? `<span class="row"><span style="font-size:.88rem">¿Borrar el libro y su resumen?</span><button class="btn danger" data-act="delete-yes">Sí, borrar</button><button class="btn ghost" data-act="delete-no">Cancelar</button></span>`
+      : `<button class="btn ghost danger" data-act="delete-ask">Borrar este libro</button>`}
+  </section>`;
+}
+
+function render() {
+  renderStatus();
+  renderShelf();
+  const nb = $("#nb");
+  if (S.newBook) { nb.innerHTML = renderNewBookForm(); return; }
+  const book = current();
+  const pend = book.isExample ? 0 : pendingIds(book).length;
+  const body = S.tab === "subrayados" ? renderHighlights(book) : S.tab === "agregar" ? renderAdd(book) : renderSummary(book);
+  nb.innerHTML = `
+    <div class="nb-head">
+      <div class="eyebrow">${book.isExample ? `<span class="pill example">Ejemplo</span>` : ""}${book.summary ? `<span class="pill ok">Resumen al día${pend ? " salvo " + pend : ""}</span>` : `<span class="pill info">Sin resumen</span>`}</div>
+      <h2>${esc(book.title)}</h2>
+      ${book.author ? `<div class="author">${esc(book.author)}</div>` : ""}
+    </div>
+    <nav class="tabs" role="tablist">
+      ${[["resumen", "Resumen"], ["subrayados", `Subrayados (${book.highlights.length})`], ["agregar", "Agregar"]].map(([k, l]) =>
+        `<button class="tab ${S.tab === k ? "active" : ""}" role="tab" aria-selected="${S.tab === k}" data-tab="${k}">${l}</button>`).join("")}
+    </nav>
+    <div class="nb-body">${body}</div>`;
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-book],[data-tab],[data-act],[data-flip],[data-del],[data-import]");
+  if (!t) return;
+  if (t.dataset.book) { S.currentId = t.dataset.book; S.newBook = null; S.found = null; S.confirmDelete = null; if (S.tab === "agregar" && t.dataset.book === "ejemplo") S.tab = "resumen"; render(); return; }
+  if (t.dataset.tab) { S.tab = t.dataset.tab; render(); return; }
+  if (t.dataset.flip) { S.flipped[t.dataset.flip] = !S.flipped[t.dataset.flip]; render(); return; }
+  const book = current();
+  if (t.dataset.del) {
+    book.highlights = book.highlights.filter(h => h.id !== t.dataset.del);
+    book.summarized = book.summarized.filter(id => id !== t.dataset.del);
+    persist(book); render(); return;
+  }
+  if (t.dataset.import != null) {
+    const f = S.found?.[+t.dataset.import]; if (!f) return;
+    let target = findBookByTitle(f.title);
+    if (!target) { target = makeBook(f.title, f.author, ""); S.books[target.id] = target; }
+    const n = addHighlights(target, f.items);
+    persist(target);
+    S.currentId = target.id; S.found = null; S.tab = n ? "resumen" : "subrayados";
+    toast(n ? `${n} subrayados agregados a «${target.title}».` : "No había subrayados nuevos.");
+    render(); return;
+  }
+  switch (t.dataset.act) {
+    case "new-book": S.newBook = { title: "", author: "", goal: "" }; render(); setTimeout(() => $("#nb-title")?.focus(), 0); break;
+    case "cancel-new": S.newBook = null; render(); break;
+    case "gen-full": generate("full"); break;
+    case "gen-update": generate("update"); break;
+    case "stop": S.gen?.ctl.abort(); break;
+    case "delete-ask": S.confirmDelete = book.id; render(); break;
+    case "delete-no": S.confirmDelete = null; render(); break;
+    case "delete-yes": S.confirmDelete = null; await removeBook(book.id); S.currentId = bookList()[0]?.id || null; S.tab = "resumen"; render(); toast("Libro borrado."); break;
+    case "add-paste": {
+      const raw = S.draft.trim(); if (!raw) { toast("Pega al menos un subrayado."); return; }
+      const items = parsePasted(raw);
+      if (!items) { S.found = parseClippings(raw); S.draft = ""; render(); return; }
+      const n = addHighlights(book, items);
+      S.draft = ""; persist(book); render();
+      toast(n ? `${n} subrayado${n > 1 ? "s" : ""} agregado${n > 1 ? "s" : ""}.` : "Esos subrayados ya estaban guardados.");
+      break;
+    }
+    case "copy": {
+      const md = summaryMarkdown(book);
+      try { await navigator.clipboard.writeText(md); toast("Resumen copiado. Pégalo en tus notas."); }
+      catch (err) { const ta = document.createElement("textarea"); ta.value = md; ta.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); toast("Resumen copiado."); } catch (e2) { toast("No se pudo copiar."); } ta.remove(); }
+      break;
+    }
+  }
+});
+document.addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.dataset.action != null) {
+    const book = current(); book.done = book.done || {};
+    if (el.checked) book.done[el.dataset.action] = true; else delete book.done[el.dataset.action];
+    persist(book); render();
+  } else if (el.hasAttribute("data-goal")) {
+    const book = current(); if (book.isExample) return;
+    book.goal = el.value.trim(); persist(book);
+  } else if (el.id === "file" && el.files[0]) {
+    readFile(el.files[0]);
+  }
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "paste") S.draft = e.target.value;
+  if (S.newBook && e.target.id?.startsWith("nb-")) S.newBook[e.target.id.slice(3)] = e.target.value;
+});
+document.addEventListener("submit", (e) => {
+  if (e.target.id !== "new-form") return;
+  e.preventDefault();
+  const { title, author, goal } = S.newBook;
+  if (!title.trim()) return;
+  const b = findBookByTitle(title) || makeBook(title, author, goal);
+  S.books[b.id] = b; S.currentId = b.id; S.newBook = null; S.tab = "agregar";
+  persist(b); render();
+});
+function readFile(file) {
+  const r = new FileReader();
+  r.onload = () => { S.found = parseClippings(String(r.result || "")); render(); };
+  r.onerror = () => toast("No se pudo leer el archivo.");
+  r.readAsText(file);
+}
+["dragover", "dragleave", "drop"].forEach(type => document.addEventListener(type, (e) => {
+  const d = e.target.closest?.("#drop"); if (!d) return;
+  e.preventDefault();
+  d.classList.toggle("over", type === "dragover");
+  if (type === "drop" && e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
+}));
+
+/* ---------- Arranque ---------- */
+S.books = loadLocal();
+render();
+
+(async () => {
+  const cl = window.claude;
+  const [user, db, sample] = cl?.use ? await Promise.all([cl.use("user"), cl.use("db"), cl.use("sample")].map(p => p.catch(() => null))) : [null, null, null];
+  S.sample = sample;
+  const uid = user ? await user.id() : null;
+  if (!db || !uid) { S.mode = "local"; render(); return; }
+  S.db = db; S.uid = uid;
+  const local = S.books;
+  let first = true;
+  col().onSnapshot((snap) => {
+    const remote = {};
+    snap.docs.forEach(d => { const v = d.data(); if (v) remote[d.id] = JSON.parse(JSON.stringify(v)); });
+    if (first) {
+      first = false; S.mode = "cuenta";
+      // Si ya usabas la página sin cuenta, sube esos libros una vez.
+      const toUpload = Object.values(local).filter(b => !remote[b.id]);
+      S.books = remote;
+      toUpload.forEach(b => { S.books[b.id] = b; dirty[b.id] = true; flush(b.id); });
+      if (toUpload.length) { try { localStorage.removeItem(LS_KEY); } catch (e) {} }
+      render(); return;
+    }
+    let changed = false;
+    for (const [id, v] of Object.entries(remote)) {
+      if (dirty[id] || timers[id] && S.books[id] && S.books[id].updatedAt > (v.updatedAt || 0)) continue;
+      if (!S.books[id] || (v.updatedAt || 0) > (S.books[id].updatedAt || 0)) { S.books[id] = v; changed = true; }
+    }
+    for (const id of Object.keys(S.books)) if (!remote[id] && !dirty[id] && !timers[id]) { delete S.books[id]; changed = true; }
+    const typing = document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName);
+    if (changed && !typing && !S.gen) render();
+  }, () => { S.mode = "local"; S.books = loadLocal(); render(); });
+})();
+})();
+</script>
