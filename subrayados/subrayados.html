@@ -544,7 +544,7 @@ function renderNewBookForm() {
     <details class="howto"><summary>Cómo copiar tus destacados de Apple Books</summary>
       <ul>
         <li><b>En el Mac:</b> abre el libro en la app Libros, abre el panel de notas, selecciona todo (⌘A), copia (⌘C) y pega aquí.</li>
-        <li><b>En el iPhone o iPad:</b> toca un destacado, elige «Copiar» y pégalo aquí. Puedes pegar varios juntos.</li>
+        <li><b>En el iPad:</b> pon Libros y esta página lado a lado. Toca un destacado, «Copiar», y pégalo aquí. Repite con los que quieras; cada uno queda separado solo.</li>
       </ul>
     </details>
   </form>`;
@@ -667,7 +667,7 @@ function renderAdd(book) {
   <details class="howto" open><summary>Cómo copiar tus destacados de Apple Books</summary>
     <ul>
       <li><b>En el Mac (lo más rápido):</b> abre el libro en la app Libros, haz clic en el botón de notas de la barra superior para ver tus destacados, selecciónalos todos (⌘A), cópialos (⌘C) y pégalos aquí.</li>
-      <li><b>En el iPhone o iPad:</b> abre el libro, toca un destacado, elige «Copiar» y pégalo aquí. Repite con los que quieras; puedes pegar varios juntos antes de tocar «Agregar».</li>
+      <li><b>En el iPad:</b> pon Libros y esta página lado a lado (Split View). En Libros toca un destacado, elige «Copiar» y pégalo aquí. Sigue con el siguiente: cada uno queda separado solo, y lo pegado no se pierde si cambias de app. Al final toca «Agregar destacados».</li>
       <li><b>Para ir sumando:</b> cada vez que avances, pega solo los destacados nuevos (o todos otra vez: los repetidos se ignoran) y toca «Actualizar resumen».</li>
     </ul>
   </details>
@@ -739,7 +739,7 @@ document.addEventListener("click", async (e) => {
   }
   switch (t.dataset.act) {
     case "new-book": S.newBook = { raw: "", title: "", author: "", needTitle: false }; S.found = null; render(); setTimeout(() => $("#nb-raw")?.focus(), 0); break;
-    case "cancel-new": S.newBook = null; S.found = null; render(); break;
+    case "cancel-new": S.newBook = null; S.found = null; saveDraft(); render(); break;
     case "gen-full": generate("full"); break;
     case "gen-update": generate("update"); break;
     case "stop": S.gen?.ctl.abort(); break;
@@ -749,9 +749,9 @@ document.addEventListener("click", async (e) => {
     case "add-paste": {
       const raw = S.draft.trim(); if (!raw) { toast("Pega al menos un subrayado."); return; }
       const parsed = parsePasted(raw);
-      if (!parsed) { S.found = parseClippings(raw); S.draft = ""; render(); return; }
+      if (!parsed) { S.found = parseClippings(raw); S.draft = ""; saveDraft(); render(); return; }
       const { target, n } = importParsed(parsed, book);
-      S.draft = ""; render();
+      S.draft = ""; saveDraft(); render();
       toast(n ? `${n} subrayado${n > 1 ? "s" : ""} agregado${n > 1 ? "s" : ""} a «${target.title}».` : "Esos subrayados ya estaban guardados.");
       break;
     }
@@ -779,7 +779,32 @@ document.addEventListener("change", (e) => {
 document.addEventListener("input", (e) => {
   if (e.target.id === "paste") S.draft = e.target.value;
   if (S.newBook && e.target.id?.startsWith("nb-")) S.newBook[e.target.id.slice(3)] = e.target.value;
+  if (e.target.id === "paste" || e.target.id === "nb-raw") saveDraft();
 });
+/* Al pegar al final de lo que ya hay, deja una línea en blanco: así cada destacado queda separado. */
+document.addEventListener("paste", (e) => {
+  const ta = e.target;
+  if (ta.id !== "paste" && ta.id !== "nb-raw") return;
+  const text = e.clipboardData?.getData("text/plain");
+  if (!text || !ta.value.trim() || ta.selectionStart !== ta.value.length) return;
+  e.preventDefault();
+  const sep = /\n\s*\n\s*$/.test(ta.value) ? "" : /\n\s*$/.test(ta.value) ? "\n" : "\n\n";
+  ta.setRangeText(sep + text.trim() + "\n\n", ta.value.length, ta.value.length, "end");
+  ta.dispatchEvent(new Event("input", { bubbles: true }));
+  ta.scrollTop = ta.scrollHeight;
+});
+/* Lo que llevas pegado sobrevive si el iPad recarga la página al cambiar de app. */
+const DRAFT_KEY = "subrayados.borrador";
+function saveDraft() {
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ paste: S.draft, raw: S.newBook ? S.newBook.raw : "", book: S.currentId })); } catch (e) {}
+}
+function loadDraft() {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); if (!d) return;
+    if (d.raw) { S.newBook = { raw: d.raw, title: "", author: "", needTitle: false }; }
+    else if (d.paste) { S.draft = d.paste; S.currentId = d.book || null; S.tab = "agregar"; }
+  } catch (e) {}
+}
 document.addEventListener("submit", (e) => {
   if (e.target.id !== "new-form") return;
   e.preventDefault();
@@ -790,7 +815,7 @@ document.addEventListener("submit", (e) => {
   if (!parsed.title && !nb.title.trim()) { nb.needTitle = true; render(); setTimeout(() => $("#nb-title")?.focus(), 0); return; }
   if (!parsed.title) { parsed.title = nb.title.trim(); parsed.author = parsed.author || nb.author.trim(); }
   const { target, n } = importParsed(parsed, null);
-  S.newBook = null; S.found = null; S.tab = "resumen"; render();
+  S.newBook = null; S.found = null; S.tab = "resumen"; saveDraft(); render();
   toast(`${n} subrayado${n === 1 ? "" : "s"} en «${target.title}»${target.author ? " de " + target.author : ""}.`);
 });
 function readFile(file) {
@@ -808,6 +833,7 @@ function readFile(file) {
 
 /* ---------- Arranque ---------- */
 S.books = loadLocal();
+loadDraft();
 render();
 
 (async () => {
