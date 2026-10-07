@@ -339,13 +339,45 @@ function parseClippings(raw) {
   });
   return Object.values(books).map(b => ({ ...b, count: b.items.filter(i => i.text).length })).filter(b => b.items.length);
 }
-function parsePasted(raw) {
-  if (/==========/.test(raw)) return null; // es un My Clippings pegado
-  const chunks = /\n\s*\n/.test(raw) ? raw.split(/\n\s*\n/) : raw.split(/\n/);
+/* Texto pegado: Apple Books (con su pie «Extracto de…»), otras apps o escrito a mano. */
+const unquote = (s) => s.replace(/^[\s\-•*"“”«]+|[\s"“”»]+$/g, "").trim();
+const isJunk = (l) => /copyright|derechos de autor|protegido por|^https?:\/\/\S+$|^(apple )?books\.?$|^ibooks\.?$/i.test(l)
+  || /^(?:[a-záéíóú]+,?\s+)?\d{1,2}(?:\s+de)?\s+[a-záéíóú]+(?:\s+de)?\s+\d{4}$/i.test(l)   // 3 de junio de 2025
+  || /^[a-z]+\s+\d{1,2},\s+\d{4}$/i.test(l) || /^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(l);
+function parseGeneric(raw) {
+  const clean = raw.split(/\r?\n/).filter(l => !isJunk(l.trim())).join("\n");
+  const chunks = /\n\s*\n/.test(clean) ? clean.split(/\n\s*\n/) : clean.split(/\n/);
   return chunks.map(c => c.trim()).filter(c => c.length > 2).map(c => {
-    const m = c.match(/^\s*(?:\[?(p(?:á|a)g\.?|pos\.?|loc\.?)\s*([\d-]+)\]?[:.)\-–\s]+)/i);
-    return m ? { text: c.slice(m[0].length).trim(), loc: (/^p/i.test(m[1]) ? "Pág. " : "Pos. ") + m[2] } : { text: c.replace(/^[-•*"“]\s*|["”]$/g, "").trim() };
-  });
+    const m = c.match(/^\s*(?:\[?(p(?:á|a)g(?:ina)?\.?|pos\.?|loc\.?)\s*([\d-]+)\]?[:.)\-–\s]+)/i);
+    return m ? { text: unquote(c.slice(m[0].length)), loc: (/^p/i.test(m[1]) ? "Pág. " : "Pos. ") + m[2] } : { text: unquote(c) };
+  }).filter(it => it.text);
+}
+function parsePasted(raw) {
+  if (/==========/.test(raw)) return null; // es un My Clippings de Kindle pegado
+  const lines = raw.split(/\r?\n/);
+  const items = []; let buf = [], title = "", author = "";
+  const flushBuf = () => { const t = unquote(buf.join("\n")); if (t) items.push({ text: t }); buf = []; };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const m = line.match(/^(?:excerpt from|extracto de|fragmento de|extrait de|auszug aus)\b[:\s]*(.*)$/i);
+    if (m) {
+      flushBuf();
+      if (m[1]) { // formato antiguo en una línea: Autor. “Título”. Apple Books.
+        const q = m[1].match(/^(.*?)\.\s*[“"«](.+?)\.?[”"»]/);
+        if (q) { author = author || q[1].trim(); title = title || q[2].trim(); }
+      } else { // formato actual: título y autor en las líneas siguientes
+        const t = (lines[i + 1] || "").trim(), a = (lines[i + 2] || "").trim();
+        if (t && !isJunk(t)) { title = title || t; i++; if (a && !isJunk(a)) { author = author || a; i++; } }
+      }
+      while (i + 1 < lines.length && isJunk(lines[i + 1].trim())) i++;
+      continue;
+    }
+    if (isJunk(line)) continue;
+    buf.push(lines[i]);
+  }
+  if (!items.length) return { items: parseGeneric(raw), title: "", author: "" };
+  if (buf.join("").trim()) items.push(...parseGeneric(buf.join("\n")));
+  return { items, title, author };
 }
 
 /* ---------- Resumen con Claude ---------- */
@@ -499,7 +531,7 @@ function renderNewBookForm() {
     <div class="field"><label for="nb-goal">¿Para qué quieres aplicar este libro?</label><input type="text" id="nb-goal" value="${esc(nb.goal)}" placeholder="Ej.: organizar mejor mi semana de trabajo y estudio">
       <span class="help">Claude usa esto para elegir ejemplos y acciones que te sirvan a ti.</span></div>
     <div class="row"><button class="btn primary" type="submit">Crear libro</button><button class="btn ghost" type="button" data-act="cancel-new">Cancelar</button></div>
-    <p class="help" style="margin:0;color:var(--muted);font-size:.85rem">¿Usas Kindle? Puedes saltarte este paso: crea cualquier libro, ve a «Agregar» y sube tu archivo My Clippings.txt. Ahí aparecerán todos tus libros.</p>
+    <p class="help" style="margin:0;color:var(--muted);font-size:.85rem">Después vas a «Agregar» y pegas los destacados que copiaste de Apple Books.</p>
   </form>`;
 }
 
@@ -595,12 +627,20 @@ function renderAdd(book) {
   return `
   <section class="field">
     <label for="paste">Pega tus subrayados</label>
-    <span class="help">Uno por párrafo (deja una línea en blanco entre cada uno). Si empiezas con «Pág. 23:» o «Pos. 1200:», guardamos la ubicación. También puedes pegar el contenido completo de My Clippings.txt.</span>
-    <textarea id="paste" placeholder="Pág. 45: La disciplina es elegir entre lo que quieres ahora y lo que más quieres.&#10;&#10;Pág. 52: …">${esc(S.draft)}</textarea>
+    <span class="help">Copia tus destacados en Apple Books y pégalos tal cual: quitamos solo el «Extracto de… Este material puede estar protegido…» que agrega la app. Puedes pegar varios de una vez. Si escribes a mano, deja una línea en blanco entre cada uno.</span>
+    <textarea id="paste" placeholder="“La disciplina es elegir entre lo que quieres ahora y lo que más quieres.”&#10;&#10;Extracto de&#10;Título del libro&#10;Autor&#10;Este material puede estar protegido por derechos de autor.">${esc(S.draft)}</textarea>
     <div class="row"><button class="btn primary" data-act="add-paste">Agregar a «${esc(book.title)}»</button></div>
   </section>
-  <section class="drop" id="drop">
-    <b>¿Tienes Kindle?</b>
+  <details class="howto" open><summary>Cómo copiar tus destacados de Apple Books</summary>
+    <ul>
+      <li><b>En el Mac (lo más rápido):</b> abre el libro en la app Libros, haz clic en el botón de notas de la barra superior para ver tus destacados, selecciónalos todos (⌘A), cópialos (⌘C) y pégalos aquí.</li>
+      <li><b>En el iPhone o iPad:</b> abre el libro, toca un destacado, elige «Copiar» y pégalo aquí. Repite con los que quieras; puedes pegar varios juntos antes de tocar «Agregar».</li>
+      <li><b>Para ir sumando:</b> cada vez que avances, pega solo los destacados nuevos (o todos otra vez: los repetidos se ignoran) y toca «Actualizar resumen».</li>
+    </ul>
+  </details>
+  <details class="howto" ${found ? "open" : ""}><summary>¿Tienes también un Kindle?</summary>
+  <section class="drop" id="drop" style="margin-top:10px">
+    <b>Archivo de Kindle</b>
     <span class="help" style="color:var(--muted);font-size:.88rem">Sube el archivo <span class="loc">My Clippings.txt</span> y elige qué libro importar. Si lo vuelves a subir más adelante, solo se suman los subrayados nuevos.</span>
     <label class="btn" for="file">Elegir archivo</label>
     <input type="file" id="file" accept=".txt,text/plain" hidden>
@@ -611,13 +651,6 @@ function renderAdd(book) {
         <button class="btn" data-import="${i}">${existing ? "Sumar a este libro" : "Importar como libro nuevo"}</button></span></div>`;
     }).join("") : `<p class="empty">No encontramos subrayados en ese archivo. ¿Es el My Clippings.txt de tu Kindle?</p>`}</div>` : ""}
   </section>
-  <details class="howto"><summary>Cómo sacar tus subrayados</summary>
-    <ul>
-      <li><b>Kindle (aparato):</b> conéctalo por USB a tu computador, abre la carpeta <span class="loc">documents</span> y copia <span class="loc">My Clippings.txt</span>.</li>
-      <li><b>App de Kindle:</b> abre el libro, ve a «Notas y subrayados», selecciona y copia el texto, y pégalo arriba.</li>
-      <li><b>Apple Books, Google Play Libros, PDF:</b> copia tus subrayados y pégalos arriba, uno por párrafo.</li>
-      <li><b>Libro en papel:</b> escribe o dicta las frases que marcaste. Agrega la página al inicio si quieres.</li>
-    </ul>
   </details>
   <section class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:16px">
     <span class="loc">${book.highlights.length} subrayados · creado ${new Date(book.createdAt || Date.now()).toLocaleDateString("es")}</span>
@@ -682,11 +715,14 @@ document.addEventListener("click", async (e) => {
     case "delete-yes": S.confirmDelete = null; await removeBook(book.id); S.currentId = bookList()[0]?.id || null; S.tab = "resumen"; render(); toast("Libro borrado."); break;
     case "add-paste": {
       const raw = S.draft.trim(); if (!raw) { toast("Pega al menos un subrayado."); return; }
-      const items = parsePasted(raw);
-      if (!items) { S.found = parseClippings(raw); S.draft = ""; render(); return; }
-      const n = addHighlights(book, items);
-      S.draft = ""; persist(book); render();
-      toast(n ? `${n} subrayado${n > 1 ? "s" : ""} agregado${n > 1 ? "s" : ""}.` : "Esos subrayados ya estaban guardados.");
+      const parsed = parsePasted(raw);
+      if (!parsed) { S.found = parseClippings(raw); S.draft = ""; render(); return; }
+      // Apple Books trae el título en el pie: si ya tienes ese libro, van ahí.
+      const target = (parsed.title && findBookByTitle(parsed.title)) || book;
+      if (parsed.author && !target.author && (!parsed.title || norm(parsed.title) === norm(target.title))) target.author = parsed.author;
+      const n = addHighlights(target, parsed.items);
+      S.draft = ""; S.currentId = target.id; persist(target); render();
+      toast(n ? `${n} subrayado${n > 1 ? "s" : ""} agregado${n > 1 ? "s" : ""} a «${target.title}».` : "Esos subrayados ya estaban guardados.");
       break;
     }
     case "copy": {
