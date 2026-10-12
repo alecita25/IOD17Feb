@@ -220,7 +220,7 @@ const EXAMPLE = {
 /* ---------- Estado ---------- */
 const S = {
   books: {}, currentId: null, tab: "resumen",
-  mode: "loading", db: null, uid: null, sample: null, sampleOff: false,
+  mode: "loading", db: null, uid: null, sample: null, sampleOff: false, imgOK: false, reading: null,
   draft: "", newBook: null, found: null, flipped: {}, confirmDelete: null,
   gen: null, example: JSON.parse(JSON.stringify(EXAMPLE))
 };
@@ -523,6 +523,17 @@ function renderShelf() {
     <button class="new-btn" data-act="new-book">+ Agregar un libro</button>`;
 }
 
+function screensBlock(where) {
+  if (!S.imgOK || S.sampleOff) return "";
+  if (S.reading) return `<div class="callout"><p class="row"><span class="spinner" aria-hidden="true"></span> Leyendo capturas… <span class="loc" id="read-progress">${S.reading.done} de ${S.reading.total}</span></p></div>`;
+  return `<div class="drop">
+    <b>O sube capturas de pantalla</b>
+    <span class="help" style="color:var(--muted);font-size:.88rem">En Libros abre <b>Marcadores y destacados → Destacados</b> y toma capturas (botón de arriba + subir volumen) bajando por la lista. Súbelas todas juntas: Claude lee el texto y los repetidos se ignoran.</span>
+    <label class="btn primary" for="shots-${where}">Elegir capturas</label>
+    <input type="file" id="shots-${where}" data-shots="${where}" accept="image/*" multiple hidden>
+  </div>`;
+}
+
 function renderNewBookForm() {
   const nb = S.newBook;
   return `
@@ -540,6 +551,8 @@ function renderNewBookForm() {
       <div class="field"><label for="nb-author">Autor (opcional)</label><input type="text" id="nb-author" value="${esc(nb.author)}"></div>
     </div>` : ""}
     <div class="row"><button class="btn primary" type="submit">Agregar libro</button><button class="btn ghost" type="button" data-act="cancel-new">Cancelar</button></div>
+    ${nb.pending ? `<p class="loc" style="margin:0">${nb.pending.length} destacados leídos de tus capturas, esperando el título.</p>` : ""}
+    ${screensBlock("new")}
     ${S.found ? `<div class="found">${S.found.map((f, i) => `<div class="found-item"><span class="t">${esc(f.title)}${f.author ? ` <span class="loc">${esc(f.author)}</span>` : ""}</span><span class="row"><span class="loc">${f.count} subrayados</span><button class="btn" type="button" data-import="${i}">Importar</button></span></div>`).join("")}</div>` : ""}
     <details class="howto"><summary>Cómo copiar tus destacados de Apple Books</summary>
       <ul>
@@ -664,6 +677,7 @@ function renderAdd(book) {
     <textarea id="paste" placeholder="“La disciplina es elegir entre lo que quieres ahora y lo que más quieres.”&#10;&#10;Extracto de&#10;Título del libro&#10;Autor&#10;Este material puede estar protegido por derechos de autor.">${esc(S.draft)}</textarea>
     <div class="row"><button class="btn primary" data-act="add-paste">Agregar destacados</button><span class="help" style="color:var(--muted);font-size:.8rem">Si son de otro libro, se crea solo.</span></div>
   </section>
+  ${screensBlock("add")}
   <details class="howto" open><summary>Cómo copiar tus destacados de Apple Books</summary>
     <ul>
       <li><b>En el Mac (lo más rápido):</b> abre el libro en la app Libros, haz clic en el botón de notas de la barra superior para ver tus destacados, selecciónalos todos (⌘A), cópialos (⌘C) y pégalos aquí.</li>
@@ -772,6 +786,8 @@ document.addEventListener("change", (e) => {
   } else if (el.hasAttribute("data-goal")) {
     const book = current(); if (book.isExample) return;
     book.goal = el.value.trim(); persist(book);
+  } else if (el.dataset.shots && el.files.length) {
+    readScreens(Array.from(el.files), el.dataset.shots);
   } else if (el.id === "file" && el.files[0]) {
     readFile(el.files[0]);
   }
@@ -809,8 +825,9 @@ document.addEventListener("submit", (e) => {
   if (e.target.id !== "new-form") return;
   e.preventDefault();
   const nb = S.newBook, raw = nb.raw.trim();
-  if (!raw) { toast("Pega al menos un destacado."); return; }
-  const parsed = parsePasted(raw);
+  if (!raw && !nb.pending) { toast("Pega al menos un destacado o sube capturas."); return; }
+  const parsed = raw ? parsePasted(raw) : { items: [], title: "", author: "" };
+  if (parsed && nb.pending) parsed.items.push(...nb.pending);
   if (!parsed) { S.found = parseClippings(raw); render(); return; }
   if (!parsed.title && !nb.title.trim()) { nb.needTitle = true; render(); setTimeout(() => $("#nb-title")?.focus(), 0); return; }
   if (!parsed.title) { parsed.title = nb.title.trim(); parsed.author = parsed.author || nb.author.trim(); }
@@ -818,6 +835,63 @@ document.addEventListener("submit", (e) => {
   S.newBook = null; S.found = null; S.tab = "resumen"; saveDraft(); render();
   toast(`${n} subrayado${n === 1 ? "" : "s"} en «${target.title}»${target.author ? " de " + target.author : ""}.`);
 });
+/* Capturas de la lista de destacados: Claude transcribe el texto de cada destacado. */
+const SHOTS_PROMPT = `Estas imágenes son capturas de pantalla de una app de lectura (normalmente Libros / Apple Books en iPad) que muestran destacados de un libro.
+Transcribe el texto EXACTO de cada destacado, palabra por palabra, sin resumir ni corregir.
+- Ignora menús, botones, fechas, horas, barras del sistema y números de página sueltos.
+- Si ves el capítulo de un destacado, ponlo en "capitulo". Si el lector escribió una nota, ponla en "nota".
+- Si un destacado está cortado en el borde de la captura, incluye solo la parte visible.
+- Si se ve el título o el autor del libro, inclúyelos; si no, deja "".
+Responde solo con JSON: {"titulo":"","autor":"","destacados":[{"texto":"","capitulo":"","nota":""}]}`;
+async function readScreens(files, where) {
+  if (!S.sample || S.reading) return;
+  const lim = await S.sample.limits().catch(() => null);
+  const max = Math.max(1, lim?.images?.maxCount || 1);
+  const okTypes = lim?.images?.mediaTypes;
+  files = files.filter(f => !okTypes || okTypes.includes(f.type) || /^image\//.test(f.type));
+  if (!files.length) { toast("Elige imágenes (capturas de pantalla)."); return; }
+  S.reading = { done: 0, total: files.length }; render();
+  const parsed = { items: [], title: "", author: "" };
+  let failed = 0;
+  try {
+    for (let i = 0; i < files.length; i += max) {
+      const chunk = files.slice(i, i + max);
+      try {
+        const r = await S.sample.json(SHOTS_PROMPT, { images: chunk });
+        if (r && typeof r === "object") {
+          parsed.title = parsed.title || String(r.titulo || "").trim();
+          parsed.author = parsed.author || String(r.autor || "").trim();
+          for (const d of Array.isArray(r.destacados) ? r.destacados : []) {
+            const text = String(d?.texto || "").trim(); if (!text) continue;
+            parsed.items.push({ text, loc: d.capitulo ? "Cap. " + String(d.capitulo).trim() : "", note: String(d.nota || "").trim() });
+          }
+        }
+      } catch (e) {
+        const code = e && e.code;
+        if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed", "images_unavailable"].includes(code)) { S.imgOK = false; toast(ERR[code] || "Este visor no puede enviar imágenes a Claude."); break; }
+        if (code === "rate_limited" || code === "session_expired") { toast(ERR[code]); break; }
+        failed += chunk.length;
+      }
+      S.reading.done = Math.min(files.length, i + chunk.length);
+      const pr = $("#read-progress"); if (pr) pr.textContent = S.reading.done + " de " + S.reading.total;
+    }
+  } finally { S.reading = null; }
+  if (!parsed.items.length) { render(); toast(failed ? "No se pudieron leer las capturas. Intenta de nuevo." : "No encontramos destacados en esas capturas."); return; }
+  if (where === "new" && S.newBook) {
+    if (!parsed.title && !S.newBook.title.trim()) {
+      S.newBook.pending = parsed.items; S.newBook.needTitle = true; render();
+      setTimeout(() => $("#nb-title")?.focus(), 0); return;
+    }
+    if (!parsed.title) { parsed.title = S.newBook.title.trim(); parsed.author = parsed.author || S.newBook.author.trim(); }
+    const { target, n } = importParsed(parsed, null);
+    S.newBook = null; S.tab = "resumen"; saveDraft(); render();
+    toast(`${n} destacado${n === 1 ? "" : "s"} leído${n === 1 ? "" : "s"} en «${target.title}».${failed ? " Algunas capturas no se pudieron leer." : ""}`);
+  } else {
+    const { target, n } = importParsed(parsed, current());
+    S.tab = "resumen"; render();
+    toast(n ? `${n} destacado${n === 1 ? "" : "s"} nuevo${n === 1 ? "" : "s"} en «${target.title}».` : "Esos destacados ya estaban guardados.");
+  }
+}
 function readFile(file) {
   const r = new FileReader();
   r.onload = () => { S.found = parseClippings(String(r.result || "")); render(); };
@@ -840,6 +914,7 @@ render();
   const cl = window.claude;
   const [user, db, sample] = cl?.use ? await Promise.all([cl.use("user"), cl.use("db"), cl.use("sample")].map(p => p.catch(() => null))) : [null, null, null];
   S.sample = sample;
+  if (sample) { const lim = await sample.limits().catch(() => null); S.imgOK = !!lim?.images; }
   const uid = user ? await user.id() : null;
   if (!db || !uid) { S.mode = "local"; render(); return; }
   S.db = db; S.uid = uid;
