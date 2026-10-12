@@ -174,8 +174,8 @@ details.howto ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); fon
 
 <div class="wrap">
   <header class="top">
-    <div class="brand"><h1>Book <span class="mark">Seed</span></h1><p class="tagline">Lo que lees, convertido en lo que haces</p></div>
-    <div class="status" id="status"><span class="dot"></span><span>Cargando…</span></div>
+    <div class="brand"><h1>Book <span class="mark">Seed</span></h1><p class="tagline">Turn what you read into what you do</p></div>
+    <div class="status" id="status"><span class="dot"></span><span>Loading…</span></div>
   </header>
   <div class="layout">
     <aside class="shelf" id="shelf"></aside>
@@ -188,34 +188,34 @@ details.howto ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); fon
 (() => {
 "use strict";
 
-/* ---------- Ejemplo (Marco Aurelio, dominio público; traducción libre) ---------- */
+/* ---------- Example (Marcus Aurelius, public domain; free rendering) ---------- */
 const EXAMPLE = {
   id: "ejemplo", isExample: true,
-  title: "Meditaciones", author: "Marco Aurelio",
-  goal: "Mantener la calma en el trabajo cuando las cosas se complican",
+  title: "Meditations", author: "Marcus Aurelius",
+  goal: "Stay calm at work when things get complicated",
   nextId: 7,
   highlights: [
-    { id: "h1", loc: "Libro II, 1", text: "Al amanecer, dite a ti mismo: hoy me encontraré con gente entrometida, ingrata, arrogante. Nada de eso puede dañarme, porque nadie puede arrastrarme a lo que es vergonzoso." },
-    { id: "h2", loc: "Libro IV, 3", text: "Los hombres buscan retiros en el campo, en la costa, en los montes. Pero en ningún lugar se retira uno con más tranquilidad que dentro de su propia alma." },
-    { id: "h3", loc: "Libro IV, 7", text: "Quita la opinión y habrás quitado el «me han hecho daño». Quita el «me han hecho daño» y habrás quitado el daño.", note: "Esto me sirve para las reuniones difíciles." },
-    { id: "h4", loc: "Libro V, 1", text: "Por la mañana, cuando te cueste levantarte, ten presente: me levanto para hacer el trabajo de un ser humano." },
-    { id: "h5", loc: "Libro VI, 6", text: "La mejor manera de vengarte es no parecerte a quien te hizo el daño." },
-    { id: "h6", loc: "Libro VIII, 36", text: "No te dejes perturbar imaginando tu vida entera. No pienses en todas las dificultades que pueden venir; pregúntate en cada caso presente: ¿qué hay aquí que sea insoportable?" }
+    { id: "h1", loc: "Book II, 1", text: "Begin the morning by saying to yourself: today I shall meet with the busybody, the ungrateful, the arrogant. None of them can harm me, for no one can drag me into what is shameful." },
+    { id: "h2", loc: "Book IV, 3", text: "People seek retreats for themselves in the country, by the sea, in the mountains. But nowhere can a person retreat with more quiet than into their own soul." },
+    { id: "h3", loc: "Book IV, 7", text: "Take away your opinion, and you take away the complaint, “I have been harmed.” Take away the complaint, and the harm is gone.", note: "This helps me in difficult meetings." },
+    { id: "h4", loc: "Book V, 1", text: "In the morning, when you find it hard to get up, keep this thought ready: I am rising to do the work of a human being." },
+    { id: "h5", loc: "Book VI, 6", text: "The best revenge is not to be like the one who wronged you." },
+    { id: "h6", loc: "Book VIII, 36", text: "Do not let the picture of your whole life trouble you. Do not dwell on all the hardships that may come; instead ask, in each present case: what is there here that is unbearable?" }
   ],
   summarized: ["h1","h2","h3","h4","h5","h6"],
   done: { a2: true },
   summary: {
-    idea_central: "No controlas lo que pasa ni lo que hacen los demás, pero sí cómo lo interpretas y cómo respondes. Ahí está tu calma.",
+    idea_central: "You can't control what happens or what other people do, but you can control how you interpret it and how you respond. That is where your calm lives.",
     temas: [
-      { id: "t1", titulo: "El daño está en la interpretación", explicacion: "Muchas veces lo que nos molesta no es el hecho, sino la historia que nos contamos sobre él. Si separas el hecho de tu juicio, la emoción pierde fuerza.", por_que_importa: "Te permite responder con claridad en lugar de reaccionar en caliente.", ejemplo: "Un colega critica tu informe en una reunión. Hecho: señaló dos errores. Juicio: «me dejó en ridículo». Quédate con el hecho y corrige los dos errores.", subrayados: ["h3","h5"],
-        acciones: [ { id: "a1", texto: "Escribir «hecho / mi juicio» en dos columnas la próxima vez que algo te moleste", cuando: "En el momento, o al final del día" }, { id: "a2", texto: "Antes de responder un correo que te irrita, esperar 10 minutos", cuando: "Esta semana" } ] },
-      { id: "t2", titulo: "Prepararse para el día", explicacion: "Marco Aurelio empezaba el día anticipando que habría gente difícil. No para amargarse, sino para que no le tomara por sorpresa.", por_que_importa: "Lo que anticipas te altera menos.", ejemplo: "Antes de abrir el correo, piensa en qué reunión o persona puede ponerte a prueba hoy y cómo quieres comportarte.", subrayados: ["h1","h4"],
-        acciones: [ { id: "a3", texto: "Dedicar 2 minutos cada mañana a nombrar un desafío del día y tu respuesta ideal", cuando: "Cada mañana, antes del correo" } ] },
-      { id: "t3", titulo: "Un problema a la vez", explicacion: "Imaginar todas las dificultades juntas abruma. Lo presente casi siempre es manejable.", por_que_importa: "Reduce la ansiedad y te devuelve a la acción concreta.", ejemplo: "Ante un proyecto que se atrasa, en vez de pensar en todo lo que puede salir mal, define la siguiente tarea de 30 minutos.", subrayados: ["h6","h2"],
-        acciones: [ { id: "a4", texto: "Cuando te sientas abrumado, escribir solo la próxima acción concreta", cuando: "Cuando aparezca la sensación" } ] }
+      { id: "t1", titulo: "The harm is in the interpretation", explicacion: "Often what upsets us isn't the event itself but the story we tell about it. Separate the fact from your judgment and the emotion loses its grip.", por_que_importa: "It lets you respond clearly instead of reacting in the heat of the moment.", ejemplo: "A colleague criticizes your report in a meeting. Fact: they pointed out two errors. Judgment: “they made me look foolish.” Keep the fact and fix the two errors.", subrayados: ["h3","h5"],
+        acciones: [ { id: "a1", texto: "Write “fact / my judgment” in two columns the next time something bothers you", cuando: "In the moment, or at the end of the day" }, { id: "a2", texto: "Wait 10 minutes before replying to an email that irritates you", cuando: "This week" } ] },
+      { id: "t2", titulo: "Prepare for the day", explicacion: "Marcus Aurelius started each day expecting to meet difficult people. Not to become bitter, but so they wouldn't catch him off guard.", por_que_importa: "What you anticipate unsettles you less.", ejemplo: "Before opening your inbox, think about which meeting or person might test you today and how you want to behave.", subrayados: ["h1","h4"],
+        acciones: [ { id: "a3", texto: "Spend 2 minutes each morning naming one challenge of the day and your ideal response", cuando: "Every morning, before email" } ] },
+      { id: "t3", titulo: "One problem at a time", explicacion: "Picturing every difficulty at once is overwhelming. What is in front of you right now is almost always manageable.", por_que_importa: "It lowers anxiety and brings you back to concrete action.", ejemplo: "When a project falls behind, instead of imagining everything that could go wrong, define the next 30-minute task.", subrayados: ["h6","h2"],
+        acciones: [ { id: "a4", texto: "When you feel overwhelmed, write down only the next concrete action", cuando: "Whenever the feeling shows up" } ] }
     ],
-    preguntas: [ "¿Qué situación de esta semana te afectó más por tu interpretación que por el hecho en sí?", "¿Dónde está tu «retiro interior» cuando el trabajo se pone tenso?" ],
-    repaso: [ { pregunta: "Según Marco Aurelio, ¿qué hay que quitar para quitar el daño?", respuesta: "La opinión o el juicio sobre lo que pasó." }, { pregunta: "¿Qué pregunta propone ante las dificultades?", respuesta: "¿Qué hay aquí, en el presente, que sea insoportable?" } ]
+    preguntas: [ "What situation this week affected you more because of your interpretation than because of the facts?", "Where is your “inner retreat” when work gets tense?" ],
+    repaso: [ { pregunta: "According to Marcus Aurelius, what do you remove to remove the harm?", respuesta: "Your opinion or judgment about what happened." }, { pregunta: "What question does he suggest when facing hardship?", respuesta: "What is there here, in the present, that is unbearable?" } ]
   }
 };
 
@@ -266,17 +266,17 @@ function flush(id) {
     dirty[id] = false;
     const b = S.books[id]; if (!b) return;
     const body = JSON.parse(JSON.stringify(b));
-    if (JSON.stringify(body).length > 250000) { toast("Este libro tiene demasiados subrayados para guardarlo entero. Borra algunos."); return; }
+    if (JSON.stringify(body).length > 250000) { toast("This book has too many highlights to save in full. Delete a few."); return; }
     try { await col().doc(id).set(body); }
     catch (e) {
       if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 800 + Math.random() * 800)); try { await col().doc(id).set(body); return; } catch (e2) {} }
-      toast(e && e.code === "quota_exceeded" ? "No queda espacio para guardar. Borra un libro que ya no uses." : "No se pudo guardar el último cambio. Revisa tu conexión.");
+      toast(e && e.code === "quota_exceeded" ? "No storage space left. Delete a book you no longer need." : "Couldn't save your last change. Check your connection.");
     }
   });
 }
 async function removeBook(id) {
   delete S.books[id];
-  if (S.mode === "cuenta") { try { await col().doc(id).delete(); } catch (e) { toast("No se pudo borrar el libro."); } }
+  if (S.mode === "cuenta") { try { await col().doc(id).delete(); } catch (e) { toast("Couldn't delete the book."); } }
   else saveLocal();
 }
 
@@ -335,7 +335,7 @@ function parseClippings(raw) {
     if (m) { title = m[1].trim(); author = m[2].trim(); }
     const pos = meta.match(/(?:location|posición|posicion|ubicación|ubicacion|loc\.)\s*([\d]+(?:-\d+)?)/i);
     const page = meta.match(/(?:page|página|pagina)\s*([\divxlc]+(?:-[\divxlc]+)?)/i);
-    const loc = pos ? "Pos. " + pos[1] : page ? "Pág. " + page[1] : "";
+    const loc = pos ? "Loc. " + pos[1] : page ? "p. " + page[1] : "";
     const key = norm(title);
     books[key] = books[key] || { title, author, items: [] };
     if (isNote) books[key].items.push({ text: "", note: text, loc });
@@ -352,8 +352,8 @@ function parseGeneric(raw) {
   const clean = raw.split(/\r?\n/).filter(l => !isJunk(l.trim())).join("\n");
   const chunks = /\n\s*\n/.test(clean) ? clean.split(/\n\s*\n/) : clean.split(/\n/);
   return chunks.map(c => c.trim()).filter(c => c.length > 2).map(c => {
-    const m = c.match(/^\s*(?:\[?(p(?:á|a)g(?:ina)?\.?|pos\.?|loc\.?)\s*([\d-]+)\]?[:.)\-–\s]+)/i);
-    return m ? { text: unquote(c.slice(m[0].length)), loc: (/^p/i.test(m[1]) ? "Pág. " : "Pos. ") + m[2] } : { text: unquote(c) };
+    const m = c.match(/^\s*(?:\[?(p(?:á|a)g(?:ina)?\.?|page|pp?\.|pos\.?|loc\.?)\s*([\d-]+)\]?[:.)\-–\s]+)/i);
+    return m ? { text: unquote(c.slice(m[0].length)), loc: (/^p/i.test(m[1]) && !/^pos/i.test(m[1]) ? "p. " : "Loc. ") + m[2] } : { text: unquote(c) };
   }).filter(it => it.text);
 }
 function parsePasted(raw) {
@@ -392,38 +392,39 @@ function buildPrompt(book, mode) {
   const list = mode === "update" ? book.highlights.filter(h => !s.has(h.id)) : book.highlights;
   let budget = 150000, lines = [];
   for (const h of list) {
-    const line = `[${h.id}]${h.loc ? " (" + h.loc + ")" : ""} ${h.text}${h.note ? "\n   Nota del lector: " + h.note : ""}`;
+    const line = `[${h.id}]${h.loc ? " (" + h.loc + ")" : ""} ${h.text}${h.note ? "\n   Reader's note: " + h.note : ""}`;
     if ((budget -= line.length) < 0) break;
     lines.push(line);
   }
-  const goal = book.goal || "entender las ideas y aplicarlas en su vida diaria y su trabajo";
+  const goal = book.goal || "understand the ideas and apply them in daily life and work";
   const shape = `{"idea_central":"...","temas":[{"id":"t1","titulo":"...","explicacion":"...","por_que_importa":"...","ejemplo":"...","subrayados":["h1","h4"],"acciones":[{"id":"a1","texto":"...","cuando":"..."}]}],"preguntas":["..."],"repaso":[{"pregunta":"...","respuesta":"..."}]}`;
-  let p = `Eres un buen profesor. Conviertes los subrayados de un libro en un resumen didáctico, en español, que el lector pueda leer en pocos minutos y poner en práctica.
+  let p = `You are a great teacher. You turn a reader's highlights from a book into a practical, easy-to-learn summary, written in English, that the reader can read in a few minutes and put into practice.
 
-Libro: ${book.title}${book.author ? " — " + book.author : ""}
-Objetivo del lector: ${goal}
+Book: ${book.title}${book.author ? " — " + book.author : ""}
+Reader's goal: ${goal}
 `;
   if (mode === "update" && book.summary) {
     p += `
-Ya existe este resumen (JSON):
+This summary already exists (JSON):
 ${JSON.stringify(book.summary)}
 
-Intégrale SOLO los subrayados nuevos de abajo: amplía los temas existentes cuando corresponda o crea temas nuevos. No borres contenido válido. Conserva los "id" de los temas y acciones que sigan existiendo y usa ids nuevos (que no existan aún) para temas y acciones nuevas. Puedes reescribir la idea central si los nuevos subrayados la cambian.
+Integrate ONLY the new highlights below: expand existing themes where they fit or create new themes. Don't remove valid content. Keep the "id" of themes and actions that still exist, and use new ids (not yet used) for new themes and actions. You may rewrite the central idea if the new highlights change it. Write everything in English.
 `;
   }
   p += `
-Subrayados${mode === "update" ? " nuevos" : ""} (el id va entre corchetes):
+${mode === "update" ? "New highlights" : "Highlights"} (the id is in square brackets):
 ${lines.join("\n")}
 
-Reglas:
-- Lenguaje simple y cercano, frases cortas, como si se lo explicaras a un amigo.
-- Agrupa por ideas, no por orden de aparición: entre 3 y 8 temas.
-- Cada tema: "explicacion" de 2 a 4 frases; "por_que_importa" en 1 frase; "ejemplo" concreto y ligado al objetivo del lector; de 1 a 3 "acciones" concretas y verificables (empiezan con un verbo en infinitivo) y "cuando" dice en qué momento hacerlas.
-- En "subrayados" pon los ids que respaldan el tema. Usa solo ids que aparecen arriba${mode === "update" ? " o que ya estaban en el resumen" : ""}.
-- No atribuyas al libro ideas que no estén en los subrayados; si agregas algo tuyo, que sea como sugerencia práctica.
-- De 2 a 4 "preguntas" de reflexión personal y de 3 a 6 tarjetas de "repaso" (pregunta corta, respuesta corta).
+Rules:
+- Simple, friendly language and short sentences, as if explaining to a friend. Write in English even if the highlights are in another language; quote nothing.
+- Group by idea, not by order of appearance: between 3 and 8 themes.
+- Each theme: "explicacion" in 2 to 4 sentences; "por_que_importa" in 1 sentence; a concrete "ejemplo" tied to the reader's goal; 1 to 3 concrete, checkable "acciones" (start with a verb) and "cuando" says when to do each one.
+- In "subrayados" put the ids that support the theme. Use only ids shown above${mode === "update" ? " or already in the summary" : ""}.
+- Don't attribute ideas to the book that aren't in the highlights; anything you add yourself should be framed as a practical suggestion.
+- 2 to 4 personal reflection "preguntas" and 3 to 6 review cards in "repaso" (short question, short answer).
+- Keep the JSON keys exactly as shown (they are field names); the values must be in English.
 
-Responde solo con JSON con esta forma:
+Reply only with JSON in this shape:
 ${shape}`;
   return { prompt: p, used: list.slice(0, lines.length).map(h => h.id) };
 }
@@ -448,27 +449,27 @@ function cleanSummary(raw, book) {
 }
 
 const ERR = {
-  not_granted: "No diste permiso para usar Claude en esta página. Puedes activarlo en el menú de permisos de la página.",
-  sampling_disabled: "Claude no está disponible para tu cuenta.",
-  rate_limited: "Llegaste al límite de uso por ahora. Intenta de nuevo en un rato.",
-  session_expired: "Tu sesión expiró. Vuelve a iniciar sesión en Claude.",
-  prompt_too_large: "Hay demasiados subrayados para una sola vez. Prueba «Actualizar» con menos subrayados nuevos.",
-  invalid_json: "La respuesta llegó incompleta. Intenta de nuevo.",
-  refused: "Claude no pudo resumir este contenido.",
-  empty_completion: "La respuesta llegó vacía. Intenta de nuevo."
+  not_granted: "You didn't allow this page to use Claude. You can turn it on in the page's permissions menu.",
+  sampling_disabled: "Claude isn't available for your account.",
+  rate_limited: "You've hit the usage limit for now. Try again in a little while.",
+  session_expired: "Your session expired. Sign in to Claude again.",
+  prompt_too_large: "Too many highlights for one go. Try \"Update\" with fewer new highlights.",
+  invalid_json: "The answer came back incomplete. Try again.",
+  refused: "Claude couldn't summarize this content.",
+  empty_completion: "The answer came back empty. Try again."
 };
 async function generate(mode) {
   const book = current();
   if (!S.sample || S.gen || book.isExample) return;
   const { prompt, used } = buildPrompt(book, mode);
-  if (!used.length) { toast("No hay subrayados para resumir."); return; }
+  if (!used.length) { toast("There are no highlights to summarize."); return; }
   const ctl = new AbortController();
   S.gen = { bookId: book.id, ctl, text: "", mode };
   render();
   try {
     const raw = await S.sample.json(prompt, {
       signal: ctl.signal, cache: false,
-      onText: ({ text }) => { if (S.gen) { S.gen.text = text; const o = $("#gen-out"); if (o) { o.textContent = text.slice(-600); o.scrollTop = o.scrollHeight; } const c = $("#gen-count"); if (c) c.textContent = text.length.toLocaleString("es") + " caracteres"; } }
+      onText: ({ text }) => { if (S.gen) { S.gen.text = text; const o = $("#gen-out"); if (o) { o.textContent = text.slice(-600); o.scrollTop = o.scrollHeight; } const c = $("#gen-count"); if (c) c.textContent = text.length.toLocaleString("en") + " characters"; } }
     });
     const b = S.books[book.id]; if (!b) return;
     b.summary = cleanSummary(raw, b);
@@ -476,11 +477,11 @@ async function generate(mode) {
     const live = new Set(b.summary.temas.flatMap(t => t.acciones.map(a => a.id)));
     for (const k of Object.keys(b.done || {})) if (!live.has(k)) delete b.done[k];
     persist(b);
-    toast(mode === "update" ? "Resumen actualizado." : "Resumen listo.");
+    toast(mode === "update" ? "Summary updated." : "Summary ready.");
   } catch (e) {
     const code = e && e.code;
     if (code === "not_granted" || code === "sampling_disabled" || code === "not_declared" || code === "capability_disabled" || code === "capability_removed") S.sampleOff = true;
-    if (code !== "cancelled") toast(ERR[code] || "Algo falló al hablar con Claude. Intenta de nuevo.");
+    if (code !== "cancelled") toast(ERR[code] || "Something went wrong talking to Claude. Try again.");
   } finally {
     S.gen = null; S.tab = "resumen"; render();
   }
@@ -489,22 +490,22 @@ async function generate(mode) {
 function summaryMarkdown(book) {
   const s = book.summary; if (!s) return "";
   const byId = Object.fromEntries(book.highlights.map(h => [h.id, h]));
-  let md = `# ${book.title}${book.author ? " — " + book.author : ""}\n\n**Idea central:** ${s.idea_central}\n`;
+  let md = `# ${book.title}${book.author ? " — " + book.author : ""}\n\n**Central idea:** ${s.idea_central}\n`;
   for (const t of s.temas) {
-    md += `\n## ${t.titulo}\n\n${t.explicacion}\n\n**Por qué importa:** ${t.por_que_importa}\n\n**Ejemplo:** ${t.ejemplo}\n\n**Ponlo en práctica:**\n`;
+    md += `\n## ${t.titulo}\n\n${t.explicacion}\n\n**Why it matters:** ${t.por_que_importa}\n\n**Example:** ${t.ejemplo}\n\n**Put it into practice:**\n`;
     for (const a of t.acciones) md += `- [${book.done?.[a.id] ? "x" : " "}] ${a.texto}${a.cuando ? " _(" + a.cuando + ")_" : ""}\n`;
     const qs = t.subrayados.map(id => byId[id]).filter(Boolean);
     if (qs.length) md += `\n` + qs.map(h => `> ${h.text}${h.loc ? " (" + h.loc + ")" : ""}`).join("\n>\n") + "\n";
   }
-  if (s.preguntas.length) md += `\n## Para reflexionar\n\n` + s.preguntas.map(q => `- ${q}`).join("\n") + "\n";
-  if (s.repaso.length) md += `\n## Repaso\n\n` + s.repaso.map(r => `- **${r.pregunta}** ${r.respuesta}`).join("\n") + "\n";
+  if (s.preguntas.length) md += `\n## To reflect on\n\n` + s.preguntas.map(q => `- ${q}`).join("\n") + "\n";
+  if (s.repaso.length) md += `\n## Review\n\n` + s.repaso.map(r => `- **${r.pregunta}** ${r.respuesta}`).join("\n") + "\n";
   return md;
 }
 
 /* ---------- Render ---------- */
 function renderStatus() {
   const el = $("#status");
-  const txt = { loading: "Conectando…", cuenta: "Guardado en tu cuenta", local: "Guardado solo en este navegador" }[S.mode];
+  const txt = { loading: "Connecting…", cuenta: "Saved to your account", local: "Saved in this browser only" }[S.mode];
   el.innerHTML = `<span class="dot ${S.mode === "cuenta" ? "on" : ""}"></span><span>${txt}</span>`;
 }
 function renderShelf() {
@@ -512,26 +513,26 @@ function renderShelf() {
   const cur = current();
   const items = books.length ? books : [S.example];
   $("#shelf").innerHTML = `
-    <div class="shelf-label">Tus libros</div>
+    <div class="shelf-label">Your books</div>
     <div class="shelf-list">
       ${items.map(b => {
         const pend = b.isExample ? 0 : pendingIds(b).length;
         return `<button class="book-btn ${b.id === cur.id && !S.newBook ? "active" : ""}" data-book="${esc(b.id)}">
           <span class="t">${esc(b.title)}</span>
-          <span class="m">${b.isExample ? "Ejemplo · " : ""}${b.highlights.length} subrayados${pend ? ` · ${pend} nuevos` : ""}</span>
+          <span class="m">${b.isExample ? "Example · " : ""}${b.highlights.length} highlight${b.highlights.length === 1 ? "" : "s"}${pend ? ` · ${pend} new` : ""}</span>
         </button>`;
       }).join("")}
     </div>
-    <button class="new-btn" data-act="new-book">+ Agregar un libro</button>`;
+    <button class="new-btn" data-act="new-book">+ Add a book</button>`;
 }
 
 function screensBlock(where) {
   if (!S.imgOK || S.sampleOff) return "";
-  if (S.reading) return `<div class="callout"><p class="row"><span class="spinner" aria-hidden="true"></span> Leyendo capturas… <span class="loc" id="read-progress">${S.reading.done} de ${S.reading.total}</span></p></div>`;
+  if (S.reading) return `<div class="callout"><p class="row"><span class="spinner" aria-hidden="true"></span> Reading screenshots… <span class="loc" id="read-progress">${S.reading.done} of ${S.reading.total}</span></p></div>`;
   return `<div class="drop">
-    <b>O sube capturas de pantalla</b>
-    <span class="help" style="color:var(--muted);font-size:.88rem">En Libros abre <b>Marcadores y destacados → Destacados</b> y toma capturas (botón de arriba + subir volumen) bajando por la lista. Súbelas todas juntas: Claude lee el texto y los repetidos se ignoran.</span>
-    <label class="btn primary" for="shots-${where}">Elegir capturas</label>
+    <b>Or upload screenshots</b>
+    <span class="help" style="color:var(--muted);font-size:.88rem">In Books, open <b>Bookmarks &amp; Highlights → Highlights</b> and take screenshots (top button + volume up) as you scroll down the list. Upload them all at once: Claude reads the text and skips duplicates.</span>
+    <label class="btn primary" for="shots-${where}">Choose screenshots</label>
     <input type="file" id="shots-${where}" data-shots="${where}" accept="image/*" multiple hidden>
   </div>`;
 }
@@ -539,27 +540,27 @@ function screensBlock(where) {
 function renderNewBookForm() {
   const nb = S.newBook;
   return `
-  <div class="nb-head"><div class="eyebrow">Nuevo libro</div><h2>Pega tus destacados</h2></div>
+  <div class="nb-head"><div class="eyebrow">New book</div><h2>Paste your highlights</h2></div>
   <form class="nb-body" id="new-form" autocomplete="off">
     <div class="field">
-      <label for="nb-raw">Destacados copiados de Apple Books</label>
-      <span class="help">El título y el autor los sacamos del texto que agrega Apple Books al copiar («Extracto de…»). No tienes que escribirlos.</span>
-      <textarea id="nb-raw" placeholder="“El momento presente es todo lo que tienes.”&#10;&#10;Extracto de&#10;El poder del ahora&#10;Eckhart Tolle&#10;Este material puede estar protegido por derechos de autor.">${esc(nb.raw)}</textarea>
+      <label for="nb-raw">Highlights copied from Apple Books</label>
+      <span class="help">We take the title and author from the text Apple Books adds when you copy (“Excerpt From…”). No need to type them.</span>
+      <textarea id="nb-raw" placeholder="“Realize deeply that the present moment is all you have.”&#10;&#10;Excerpt From&#10;The Power of Now&#10;Eckhart Tolle&#10;This material may be protected by copyright.">${esc(nb.raw)}</textarea>
     </div>
     ${nb.needTitle ? `
     <div class="callout warn stack">
-      <p>No encontramos el nombre del libro en lo que pegaste. ¿Cuál es?</p>
-      <div class="field"><label for="nb-title">Título</label><input type="text" id="nb-title" required value="${esc(nb.title)}"></div>
-      <div class="field"><label for="nb-author">Autor (opcional)</label><input type="text" id="nb-author" value="${esc(nb.author)}"></div>
+      <p>We couldn't find the book's name in what you pasted. What is it?</p>
+      <div class="field"><label for="nb-title">Title</label><input type="text" id="nb-title" required value="${esc(nb.title)}"></div>
+      <div class="field"><label for="nb-author">Author (optional)</label><input type="text" id="nb-author" value="${esc(nb.author)}"></div>
     </div>` : ""}
-    <div class="row"><button class="btn primary" type="submit">Agregar libro</button><button class="btn ghost" type="button" data-act="cancel-new">Cancelar</button></div>
-    ${nb.pending ? `<p class="loc" style="margin:0">${nb.pending.length} destacados leídos de tus capturas, esperando el título.</p>` : ""}
+    <div class="row"><button class="btn primary" type="submit">Add book</button><button class="btn ghost" type="button" data-act="cancel-new">Cancel</button></div>
+    ${nb.pending ? `<p class="loc" style="margin:0">${nb.pending.length} highlights read from your screenshots, waiting for the title.</p>` : ""}
     ${screensBlock("new")}
-    ${S.found ? `<div class="found">${S.found.map((f, i) => `<div class="found-item"><span class="t">${esc(f.title)}${f.author ? ` <span class="loc">${esc(f.author)}</span>` : ""}</span><span class="row"><span class="loc">${f.count} subrayados</span><button class="btn" type="button" data-import="${i}">Importar</button></span></div>`).join("")}</div>` : ""}
-    <details class="howto"><summary>Cómo copiar tus destacados de Apple Books</summary>
+    ${S.found ? `<div class="found">${S.found.map((f, i) => `<div class="found-item"><span class="t">${esc(f.title)}${f.author ? ` <span class="loc">${esc(f.author)}</span>` : ""}</span><span class="row"><span class="loc">${f.count} highlights</span><button class="btn" type="button" data-import="${i}">Import</button></span></div>`).join("")}</div>` : ""}
+    <details class="howto"><summary>How to copy your highlights from Apple Books</summary>
       <ul>
-        <li><b>En el Mac:</b> abre el libro en la app Libros, abre el panel de notas, selecciona todo (⌘A), copia (⌘C) y pega aquí.</li>
-        <li><b>En el iPad:</b> pon Libros y esta página lado a lado. Toca un destacado, «Copiar», y pégalo aquí. Repite con los que quieras; cada uno queda separado solo.</li>
+        <li><b>On iPad:</b> open the book, go to <b>Bookmarks &amp; Highlights → Highlights</b>, tap <b>Select</b>, pick them all, then <b>Share → Copy</b> and paste here. Or tap one highlight, choose “Copy” and paste; each paste is separated automatically.</li>
+        <li><b>On Mac:</b> open the book in Books, open the notes panel, select all (⌘A), copy (⌘C) and paste here.</li>
       </ul>
     </details>
   </form>`;
@@ -585,26 +586,26 @@ function renderSummary(book) {
   let top = "";
   if (S.gen && S.gen.bookId === book.id) {
     top = `<div class="callout gen stack">
-      <div class="row" style="justify-content:space-between"><span class="row"><span class="spinner" aria-hidden="true"></span> <b>${S.gen.mode === "update" ? "Actualizando el resumen…" : "Escribiendo tu resumen…"}</b> <span class="loc" id="gen-count">${S.gen.text ? S.gen.text.length + " caracteres" : "Pensando…"}</span></span>
-      <button class="btn" data-act="stop">Detener</button></div>
+      <div class="row" style="justify-content:space-between"><span class="row"><span class="spinner" aria-hidden="true"></span> <b>${S.gen.mode === "update" ? "Updating your summary…" : "Writing your summary…"}</b> <span class="loc" id="gen-count">${S.gen.text ? S.gen.text.length + " characters" : "Thinking…"}</span></span>
+      <button class="btn" data-act="stop">Stop</button></div>
       <div class="gen-out" id="gen-out">${esc(S.gen.text.slice(-600))}</div>
-      <span class="loc">Suele tardar entre 30 segundos y 2 minutos.</span></div>`;
+      <span class="loc">This usually takes 30 seconds to 2 minutes.</span></div>`;
   } else if (book.isExample) {
-    top = `<div class="callout warn"><p><b>Este es un ejemplo.</b> Así se verá el resumen de tu libro: temas explicados en simple, acciones para marcar y tarjetas de repaso.</p><button class="btn primary" data-act="new-book">Agregar mi libro</button></div>`;
+    top = `<div class="callout warn"><p><b>This is an example.</b> Your book's summary will look like this: themes explained simply, actions to check off, and review cards.</p><button class="btn primary" data-act="new-book">Add my book</button></div>`;
   } else if (!book.highlights.length) {
-    top = `<div class="callout"><p>Todavía no hay subrayados en este libro. Agrégalos y luego genera el resumen.</p><button class="btn primary" data-tab="agregar">Agregar subrayados</button></div>`;
+    top = `<div class="callout"><p>This book has no highlights yet. Add them, then generate the summary.</p><button class="btn primary" data-tab="agregar">Add highlights</button></div>`;
   } else if (!s) {
     top = `<div class="callout stack">
-      <p>Tienes <b>${book.highlights.length}</b> subrayado${book.highlights.length === 1 ? "" : "s"}. Claude los agrupará en ideas, las explicará en simple y te propondrá acciones concretas.</p>
-      <div class="field"><label for="goal-pre-${esc(book.id)}">¿Para qué quieres aplicar este libro? (opcional)</label>
-        <input type="text" id="goal-pre-${esc(book.id)}" data-goal value="${esc(book.goal)}" placeholder="Ej.: mantener la calma en el trabajo">
-        <span class="help">Con esto los ejemplos y las acciones se ajustan a tu vida.</span></div>
-      ${canGen ? `<div class="row"><button class="btn primary" data-act="gen-full">Generar resumen</button></div>` : ""}</div>`;
+      <p>You have <b>${book.highlights.length}</b> highlight${book.highlights.length === 1 ? "" : "s"}. Claude will group them into ideas, explain them simply and suggest concrete actions.</p>
+      <div class="field"><label for="goal-pre-${esc(book.id)}">What do you want to use this book for? (optional)</label>
+        <input type="text" id="goal-pre-${esc(book.id)}" data-goal value="${esc(book.goal)}" placeholder="E.g. stay calm at work">
+        <span class="help">This tailors the examples and actions to your life.</span></div>
+      ${canGen ? `<div class="row"><button class="btn primary" data-act="gen-full">Generate summary</button></div>` : ""}</div>`;
   } else if (pend) {
-    top = `<div class="callout warn"><p><b>${pend} subrayado${pend > 1 ? "s" : ""} nuevo${pend > 1 ? "s" : ""}</b> desde el último resumen. Al actualizar se suman sin perder lo que ya marcaste.</p>${canGen ? `<button class="btn primary" data-act="gen-update">Actualizar resumen</button>` : ""}</div>`;
+    top = `<div class="callout warn"><p><b>${pend} new highlight${pend > 1 ? "s" : ""}</b> since the last summary. Updating adds them without losing what you've checked off.</p>${canGen ? `<button class="btn primary" data-act="gen-update">Update summary</button>` : ""}</div>`;
   }
-  if (!S.sample && !book.isExample && (pend || !s) && book.highlights.length && !S.gen) top += `<p class="loc" style="margin:0">Para generar resúmenes abre esta página dentro de Claude y permite que use tu cuenta.</p>`;
-  if (S.sampleOff && !book.isExample) top += `<p class="loc" style="margin:0">El acceso a Claude está desactivado para esta página. Actívalo en el menú de permisos y recarga.</p>`;
+  if (!S.sample && !book.isExample && (pend || !s) && book.highlights.length && !S.gen) top += `<p class="loc" style="margin:0">To generate summaries, open this page inside Claude and allow it to use your account.</p>`;
+  if (S.sampleOff && !book.isExample) top += `<p class="loc" style="margin:0">Claude access is turned off for this page. Turn it on in the permissions menu and reload.</p>`;
 
   if (!s) return top;
   const byId = Object.fromEntries(book.highlights.map(h => [h.id, h]));
@@ -613,14 +614,14 @@ function renderSummary(book) {
   const pct = actions.length ? Math.round(doneN / actions.length * 100) : 0;
   return `${top}
   <section>
-    <div class="label">La idea central</div>
+    <div class="label">The central idea</div>
     <p class="thesis">${esc(s.idea_central)}</p>
   </section>
   <div class="row" style="justify-content:space-between">
-    <div class="progress"><span class="bar"><i style="width:${pct}%"></i></span> ${doneN} de ${actions.length} acciones hechas</div>
+    <div class="progress"><span class="bar"><i style="width:${pct}%"></i></span> ${doneN} of ${actions.length} actions done</div>
     <div class="row">
-      <button class="btn ghost" data-act="copy">Copiar resumen</button>
-      ${canGen && !S.gen ? `<button class="btn ghost" data-act="gen-full">Rehacer desde cero</button>` : ""}
+      <button class="btn ghost" data-act="copy">Copy summary</button>
+      ${canGen && !S.gen ? `<button class="btn ghost" data-act="gen-full">Redo from scratch</button>` : ""}
     </div>
   </div>
   <div class="themes">
@@ -631,81 +632,82 @@ function renderSummary(book) {
         <div>
           <p class="explain">${esc(t.explicacion)}</p>
           <dl>
-            ${t.por_que_importa ? `<div><dt>Por qué importa</dt><dd>${esc(t.por_que_importa)}</dd></div>` : ""}
-            ${t.ejemplo ? `<div><dt>Ejemplo</dt><dd>${esc(t.ejemplo)}</dd></div>` : ""}
+            ${t.por_que_importa ? `<div><dt>Why it matters</dt><dd>${esc(t.por_que_importa)}</dd></div>` : ""}
+            ${t.ejemplo ? `<div><dt>Example</dt><dd>${esc(t.ejemplo)}</dd></div>` : ""}
           </dl>
         </div>
-        ${t.acciones.length ? `<div class="practice"><div class="label">Ponlo en práctica</div>
+        ${t.acciones.length ? `<div class="practice"><div class="label">Put it into practice</div>
           ${t.acciones.map(a => `<label class="action ${book.done?.[a.id] ? "done" : ""}"><input type="checkbox" id="act-${esc(book.id)}-${esc(a.id)}" data-action="${esc(a.id)}" ${book.done?.[a.id] ? "checked" : ""}><span><span class="txt">${esc(a.texto)}</span>${a.cuando ? `<span class="when">${esc(a.cuando)}</span>` : ""}</span></label>`).join("")}
         </div>` : ""}
-        ${qs.length ? `<details class="quotes"><summary>Ver lo que subrayaste (${qs.length})</summary>
+        ${qs.length ? `<details class="quotes"><summary>See what you highlighted (${qs.length})</summary>
           ${qs.map(h => `<blockquote class="quote"><span class="mark">${esc(h.text)}</span>${h.loc ? ` <span class="loc">${esc(h.loc)}</span>` : ""}</blockquote>`).join("")}
         </details>` : ""}
       </article>`;
     }).join("")}
   </div>
   <div class="two">
-    ${s.preguntas.length ? `<div class="box"><div class="label">Para reflexionar</div><ol>${s.preguntas.map(q => `<li>${esc(q)}</li>`).join("")}</ol></div>` : ""}
-    ${s.repaso.length ? `<div class="box"><div class="label">Repaso rápido</div><div class="cards">
-      ${s.repaso.map((r, i) => { const k = book.id + ":" + i; return `<button class="card" data-flip="${esc(k)}"><div class="q">${esc(r.pregunta)}</div>${S.flipped[k] ? `<div class="a">${esc(r.respuesta)}</div>` : `<div class="hint">Toca para ver la respuesta</div>`}</button>`; }).join("")}
+    ${s.preguntas.length ? `<div class="box"><div class="label">To reflect on</div><ol>${s.preguntas.map(q => `<li>${esc(q)}</li>`).join("")}</ol></div>` : ""}
+    ${s.repaso.length ? `<div class="box"><div class="label">Quick review</div><div class="cards">
+      ${s.repaso.map((r, i) => { const k = book.id + ":" + i; return `<button class="card" data-flip="${esc(k)}"><div class="q">${esc(r.pregunta)}</div>${S.flipped[k] ? `<div class="a">${esc(r.respuesta)}</div>` : `<div class="hint">Tap to see the answer</div>`}</button>`; }).join("")}
     </div></div>` : ""}
   </div>
   <div class="field" style="max-width:520px">
-    <label for="goal-${esc(book.id)}">Tu objetivo con este libro</label>
-    <input type="text" id="goal-${esc(book.id)}" data-goal value="${esc(book.goal)}" placeholder="Ej.: liderar mejor a mi equipo" ${book.isExample ? "disabled" : ""}>
-    <span class="help">Si lo cambias, usa «Rehacer desde cero» para que los ejemplos se ajusten.</span>
+    <label for="goal-${esc(book.id)}">Your goal with this book</label>
+    <input type="text" id="goal-${esc(book.id)}" data-goal value="${esc(book.goal)}" placeholder="E.g. lead my team better" ${book.isExample ? "disabled" : ""}>
+    <span class="help">If you change it, use “Redo from scratch” so the examples adjust.</span>
   </div>`;
 }
 
 function renderHighlights(book) {
-  if (!book.highlights.length) return `<p class="empty">Aún no hay subrayados. Ve a «Agregar» para traerlos.</p>`;
+  if (!book.highlights.length) return `<p class="empty">No highlights yet. Go to “Add” to bring them in.</p>`;
   const sum = new Set(book.summarized);
   return `<div class="hl-list">${[...book.highlights].reverse().map(h => `
     <div class="hl">
       <div class="text"><span class="mark">${esc(h.text)}</span></div>
-      ${book.isExample ? "<span></span>" : `<button class="btn ghost" data-del="${esc(h.id)}" aria-label="Borrar subrayado">Borrar</button>`}
-      <div class="meta">${h.loc ? `<span class="loc">${esc(h.loc)}</span>` : ""}${!sum.has(h.id) ? `<span class="pill new">Nuevo</span>` : ""}</div>
-      ${h.note ? `<div class="note" style="grid-column:1/-1"><b>Tu nota:</b> ${esc(h.note)}</div>` : ""}
+      ${book.isExample ? "<span></span>" : `<button class="btn ghost" data-del="${esc(h.id)}" aria-label="Delete highlight">Delete</button>`}
+      <div class="meta">${h.loc ? `<span class="loc">${esc(h.loc)}</span>` : ""}${!sum.has(h.id) ? `<span class="pill new">New</span>` : ""}</div>
+      ${h.note ? `<div class="note" style="grid-column:1/-1"><b>Your note:</b> ${esc(h.note)}</div>` : ""}
     </div>`).join("")}</div>`;
 }
 
 function renderAdd(book) {
-  if (book.isExample) return `<div class="callout warn"><p>Este es el libro de ejemplo. Crea tu propio libro para agregar subrayados.</p><button class="btn primary" data-act="new-book">Agregar mi libro</button></div>`;
+  if (book.isExample) return `<div class="callout warn"><p>This is the example book. Create your own book to add highlights.</p><button class="btn primary" data-act="new-book">Add my book</button></div>`;
   const found = S.found;
   return `
   <section class="field">
-    <label for="paste">Pega tus subrayados</label>
-    <span class="help">Copia tus destacados en Apple Books y pégalos tal cual: quitamos solo el «Extracto de… Este material puede estar protegido…» que agrega la app. Puedes pegar varios de una vez. Si escribes a mano, deja una línea en blanco entre cada uno.</span>
-    <textarea id="paste" placeholder="“La disciplina es elegir entre lo que quieres ahora y lo que más quieres.”&#10;&#10;Extracto de&#10;Título del libro&#10;Autor&#10;Este material puede estar protegido por derechos de autor.">${esc(S.draft)}</textarea>
-    <div class="row"><button class="btn primary" data-act="add-paste">Agregar destacados</button><span class="help" style="color:var(--muted);font-size:.8rem">Si son de otro libro, se crea solo.</span></div>
+    <label for="paste">Paste your highlights</label>
+    <span class="help">Copy your highlights in Apple Books and paste them as they are: we only strip the “Excerpt From… This material may be protected…” text the app adds. You can paste several at once. If you type them yourself, leave a blank line between each one.</span>
+    <textarea id="paste" placeholder="“Discipline is choosing between what you want now and what you want most.”&#10;&#10;Excerpt From&#10;Book Title&#10;Author&#10;This material may be protected by copyright.">${esc(S.draft)}</textarea>
+    <div class="row"><button class="btn primary" data-act="add-paste">Add highlights</button><span class="help" style="color:var(--muted);font-size:.8rem">If they're from another book, it's created automatically.</span></div>
   </section>
   ${screensBlock("add")}
-  <details class="howto" open><summary>Cómo copiar tus destacados de Apple Books</summary>
+  <details class="howto" open><summary>How to copy your highlights from Apple Books</summary>
     <ul>
-      <li><b>En el Mac (lo más rápido):</b> abre el libro en la app Libros, haz clic en el botón de notas de la barra superior para ver tus destacados, selecciónalos todos (⌘A), cópialos (⌘C) y pégalos aquí.</li>
-      <li><b>En el iPad:</b> pon Libros y esta página lado a lado (Split View). En Libros toca un destacado, elige «Copiar» y pégalo aquí. Sigue con el siguiente: cada uno queda separado solo, y lo pegado no se pierde si cambias de app. Al final toca «Agregar destacados».</li>
-      <li><b>Para ir sumando:</b> cada vez que avances, pega solo los destacados nuevos (o todos otra vez: los repetidos se ignoran) y toca «Actualizar resumen».</li>
+      <li><b>On iPad (all at once):</b> open the book, go to <b>Bookmarks &amp; Highlights → Highlights</b>, tap <b>Select</b>, pick them all, then <b>Share → Copy</b> and paste here.</li>
+      <li><b>On iPad (one by one):</b> put Books and this page side by side (Split View). Tap a highlight, choose “Copy” and paste here. Each paste is separated automatically, and nothing is lost if you switch apps.</li>
+      <li><b>On Mac:</b> open the book in Books, click the notes button in the toolbar, select all (⌘A), copy (⌘C) and paste here.</li>
+      <li><b>As you keep reading:</b> paste only the new highlights (or all of them again: duplicates are skipped) and tap “Update summary”.</li>
     </ul>
   </details>
-  <details class="howto" ${found ? "open" : ""}><summary>¿Tienes también un Kindle?</summary>
+  <details class="howto" ${found ? "open" : ""}><summary>Do you also have a Kindle?</summary>
   <section class="drop" id="drop" style="margin-top:10px">
-    <b>Archivo de Kindle</b>
-    <span class="help" style="color:var(--muted);font-size:.88rem">Sube el archivo <span class="loc">My Clippings.txt</span> y elige qué libro importar. Si lo vuelves a subir más adelante, solo se suman los subrayados nuevos.</span>
-    <label class="btn" for="file">Elegir archivo</label>
+    <b>Kindle file</b>
+    <span class="help" style="color:var(--muted);font-size:.88rem">Upload your <span class="loc">My Clippings.txt</span> file and choose which book to import. If you upload it again later, only new highlights are added.</span>
+    <label class="btn" for="file">Choose file</label>
     <input type="file" id="file" accept=".txt,text/plain" hidden>
     ${found ? `<div class="found">${found.length ? found.map((f, i) => {
       const existing = findBookByTitle(f.title);
       return `<div class="found-item"><span class="t">${esc(f.title)}${f.author ? ` <span class="loc">${esc(f.author)}</span>` : ""}</span>
-        <span class="row"><span class="loc">${f.count} subrayados</span>
-        <button class="btn" data-import="${i}">${existing ? "Sumar a este libro" : "Importar como libro nuevo"}</button></span></div>`;
-    }).join("") : `<p class="empty">No encontramos subrayados en ese archivo. ¿Es el My Clippings.txt de tu Kindle?</p>`}</div>` : ""}
+        <span class="row"><span class="loc">${f.count} highlights</span>
+        <button class="btn" data-import="${i}">${existing ? "Add to this book" : "Import as new book"}</button></span></div>`;
+    }).join("") : `<p class="empty">We found no highlights in that file. Is it the My Clippings.txt from your Kindle?</p>`}</div>` : ""}
   </section>
   </details>
   <section class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:16px">
-    <span class="loc">${book.highlights.length} subrayados · creado ${new Date(book.createdAt || Date.now()).toLocaleDateString("es")}</span>
+    <span class="loc">${book.highlights.length} highlight${book.highlights.length === 1 ? "" : "s"} · created ${new Date(book.createdAt || Date.now()).toLocaleDateString("en")}</span>
     ${S.confirmDelete === book.id
-      ? `<span class="row"><span style="font-size:.88rem">¿Borrar el libro y su resumen?</span><button class="btn danger" data-act="delete-yes">Sí, borrar</button><button class="btn ghost" data-act="delete-no">Cancelar</button></span>`
-      : `<button class="btn ghost danger" data-act="delete-ask">Borrar este libro</button>`}
+      ? `<span class="row"><span style="font-size:.88rem">Delete this book and its summary?</span><button class="btn danger" data-act="delete-yes">Yes, delete</button><button class="btn ghost" data-act="delete-no">Cancel</button></span>`
+      : `<button class="btn ghost danger" data-act="delete-ask">Delete this book</button>`}
   </section>`;
 }
 
@@ -719,12 +721,12 @@ function render() {
   const body = S.tab === "subrayados" ? renderHighlights(book) : S.tab === "agregar" ? renderAdd(book) : renderSummary(book);
   nb.innerHTML = `
     <div class="nb-head">
-      <div class="eyebrow">${book.isExample ? `<span class="pill example">Ejemplo</span>` : ""}${book.summary ? `<span class="pill ok">Resumen al día${pend ? " salvo " + pend : ""}</span>` : `<span class="pill info">Sin resumen</span>`}</div>
+      <div class="eyebrow">${book.isExample ? `<span class="pill example">Example</span>` : ""}${book.summary ? `<span class="pill ok">${pend ? pend + " new since summary" : "Summary up to date"}</span>` : `<span class="pill info">No summary yet</span>`}</div>
       <h2>${esc(book.title)}</h2>
       ${book.author ? `<div class="author">${esc(book.author)}</div>` : ""}
     </div>
     <nav class="tabs" role="tablist">
-      ${[["resumen", "Resumen"], ["subrayados", `Subrayados (${book.highlights.length})`], ["agregar", "Agregar"]].map(([k, l]) =>
+      ${[["resumen", "Summary"], ["subrayados", `Highlights (${book.highlights.length})`], ["agregar", "Add"]].map(([k, l]) =>
         `<button class="tab ${S.tab === k ? "active" : ""}" role="tab" aria-selected="${S.tab === k}" data-tab="${k}">${l}</button>`).join("")}
     </nav>
     <div class="nb-body">${body}</div>`;
@@ -750,7 +752,7 @@ document.addEventListener("click", async (e) => {
     const n = addHighlights(target, f.items);
     persist(target);
     S.currentId = target.id; S.found = null; S.newBook = null; S.tab = n ? "resumen" : "subrayados";
-    toast(n ? `${n} subrayados agregados a «${target.title}».` : "No había subrayados nuevos.");
+    toast(n ? `${n} highlight${n === 1 ? "" : "s"} added to “${target.title}”.` : "There were no new highlights.");
     render(); return;
   }
   switch (t.dataset.act) {
@@ -761,20 +763,20 @@ document.addEventListener("click", async (e) => {
     case "stop": S.gen?.ctl.abort(); break;
     case "delete-ask": S.confirmDelete = book.id; render(); break;
     case "delete-no": S.confirmDelete = null; render(); break;
-    case "delete-yes": S.confirmDelete = null; await removeBook(book.id); S.currentId = bookList()[0]?.id || null; S.tab = "resumen"; render(); toast("Libro borrado."); break;
+    case "delete-yes": S.confirmDelete = null; await removeBook(book.id); S.currentId = bookList()[0]?.id || null; S.tab = "resumen"; render(); toast("Book deleted."); break;
     case "add-paste": {
-      const raw = S.draft.trim(); if (!raw) { toast("Pega al menos un subrayado."); return; }
+      const raw = S.draft.trim(); if (!raw) { toast("Paste at least one highlight."); return; }
       const parsed = parsePasted(raw);
       if (!parsed) { S.found = parseClippings(raw); S.draft = ""; saveDraft(); render(); return; }
       const { target, n } = importParsed(parsed, book);
       S.draft = ""; saveDraft(); render();
-      toast(n ? `${n} subrayado${n > 1 ? "s" : ""} agregado${n > 1 ? "s" : ""} a «${target.title}».` : "Esos subrayados ya estaban guardados.");
+      toast(n ? `${n} highlight${n > 1 ? "s" : ""} added to “${target.title}”.` : "Those highlights were already saved.");
       break;
     }
     case "copy": {
       const md = summaryMarkdown(book);
-      try { await navigator.clipboard.writeText(md); toast("Resumen copiado. Pégalo en tus notas."); }
-      catch (err) { const ta = document.createElement("textarea"); ta.value = md; ta.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); toast("Resumen copiado."); } catch (e2) { toast("No se pudo copiar."); } ta.remove(); }
+      try { await navigator.clipboard.writeText(md); toast("Summary copied. Paste it into your notes."); }
+      catch (err) { const ta = document.createElement("textarea"); ta.value = md; ta.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); toast("Summary copied."); } catch (e2) { toast("Couldn't copy."); } ta.remove(); }
       break;
     }
   }
@@ -827,7 +829,7 @@ document.addEventListener("submit", (e) => {
   if (e.target.id !== "new-form") return;
   e.preventDefault();
   const nb = S.newBook, raw = nb.raw.trim();
-  if (!raw && !nb.pending) { toast("Pega al menos un destacado o sube capturas."); return; }
+  if (!raw && !nb.pending) { toast("Paste at least one highlight or upload screenshots."); return; }
   const parsed = raw ? parsePasted(raw) : { items: [], title: "", author: "" };
   if (parsed && nb.pending) parsed.items.push(...nb.pending);
   if (!parsed) { S.found = parseClippings(raw); render(); return; }
@@ -835,23 +837,23 @@ document.addEventListener("submit", (e) => {
   if (!parsed.title) { parsed.title = nb.title.trim(); parsed.author = parsed.author || nb.author.trim(); }
   const { target, n } = importParsed(parsed, null);
   S.newBook = null; S.found = null; S.tab = "resumen"; saveDraft(); render();
-  toast(`${n} subrayado${n === 1 ? "" : "s"} en «${target.title}»${target.author ? " de " + target.author : ""}.`);
+  toast(`${n} highlight${n === 1 ? "" : "s"} in “${target.title}”${target.author ? " by " + target.author : ""}.`);
 });
 /* Capturas de la lista de destacados: Claude transcribe el texto de cada destacado. */
-const SHOTS_PROMPT = `Estas imágenes son capturas de pantalla de una app de lectura (normalmente Libros / Apple Books en iPad) que muestran destacados de un libro.
-Transcribe el texto EXACTO de cada destacado, palabra por palabra, sin resumir ni corregir.
-- Ignora menús, botones, fechas, horas, barras del sistema y números de página sueltos.
-- Si ves el capítulo de un destacado, ponlo en "capitulo". Si el lector escribió una nota, ponla en "nota".
-- Si un destacado está cortado en el borde de la captura, incluye solo la parte visible.
-- Si se ve el título o el autor del libro, inclúyelos; si no, deja "".
-Responde solo con JSON: {"titulo":"","autor":"","destacados":[{"texto":"","capitulo":"","nota":""}]}`;
+const SHOTS_PROMPT = `These images are screenshots from a reading app (usually Books / Apple Books on iPad) showing highlights from a book.
+Transcribe the EXACT text of each highlight, word for word, in its original language, without summarizing or correcting.
+- Ignore menus, buttons, dates, times, system bars and stray page numbers.
+- If you see a highlight's chapter, put it in "capitulo". If the reader wrote a note, put it in "nota".
+- If a highlight is cut off at the edge of a screenshot, include only the visible part.
+- If the book's title or author is visible, include them; otherwise leave "".
+Reply only with JSON (keep these keys): {"titulo":"","autor":"","destacados":[{"texto":"","capitulo":"","nota":""}]}`;
 async function readScreens(files, where) {
   if (!S.sample || S.reading) return;
   const lim = await S.sample.limits().catch(() => null);
   const max = Math.max(1, lim?.images?.maxCount || 1);
   const okTypes = lim?.images?.mediaTypes;
   files = files.filter(f => !okTypes || okTypes.includes(f.type) || /^image\//.test(f.type));
-  if (!files.length) { toast("Elige imágenes (capturas de pantalla)."); return; }
+  if (!files.length) { toast("Choose images (screenshots)."); return; }
   S.reading = { done: 0, total: files.length }; render();
   const parsed = { items: [], title: "", author: "" };
   let failed = 0;
@@ -865,20 +867,20 @@ async function readScreens(files, where) {
           parsed.author = parsed.author || String(r.autor || "").trim();
           for (const d of Array.isArray(r.destacados) ? r.destacados : []) {
             const text = String(d?.texto || "").trim(); if (!text) continue;
-            parsed.items.push({ text, loc: d.capitulo ? "Cap. " + String(d.capitulo).trim() : "", note: String(d.nota || "").trim() });
+            parsed.items.push({ text, loc: d.capitulo ? "Ch. " + String(d.capitulo).trim() : "", note: String(d.nota || "").trim() });
           }
         }
       } catch (e) {
         const code = e && e.code;
-        if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed", "images_unavailable"].includes(code)) { S.imgOK = false; toast(ERR[code] || "Este visor no puede enviar imágenes a Claude."); break; }
+        if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed", "images_unavailable"].includes(code)) { S.imgOK = false; toast(ERR[code] || "This viewer can't send images to Claude."); break; }
         if (code === "rate_limited" || code === "session_expired") { toast(ERR[code]); break; }
         failed += chunk.length;
       }
       S.reading.done = Math.min(files.length, i + chunk.length);
-      const pr = $("#read-progress"); if (pr) pr.textContent = S.reading.done + " de " + S.reading.total;
+      const pr = $("#read-progress"); if (pr) pr.textContent = S.reading.done + " of " + S.reading.total;
     }
   } finally { S.reading = null; }
-  if (!parsed.items.length) { render(); toast(failed ? "No se pudieron leer las capturas. Intenta de nuevo." : "No encontramos destacados en esas capturas."); return; }
+  if (!parsed.items.length) { render(); toast(failed ? "Couldn't read the screenshots. Try again." : "We found no highlights in those screenshots."); return; }
   if (where === "new" && S.newBook) {
     if (!parsed.title && !S.newBook.title.trim()) {
       S.newBook.pending = parsed.items; S.newBook.needTitle = true; render();
@@ -887,17 +889,17 @@ async function readScreens(files, where) {
     if (!parsed.title) { parsed.title = S.newBook.title.trim(); parsed.author = parsed.author || S.newBook.author.trim(); }
     const { target, n } = importParsed(parsed, null);
     S.newBook = null; S.tab = "resumen"; saveDraft(); render();
-    toast(`${n} destacado${n === 1 ? "" : "s"} leído${n === 1 ? "" : "s"} en «${target.title}».${failed ? " Algunas capturas no se pudieron leer." : ""}`);
+    toast(`${n} highlight${n === 1 ? "" : "s"} read into “${target.title}”.${failed ? " Some screenshots couldn't be read." : ""}`);
   } else {
     const { target, n } = importParsed(parsed, current());
     S.tab = "resumen"; render();
-    toast(n ? `${n} destacado${n === 1 ? "" : "s"} nuevo${n === 1 ? "" : "s"} en «${target.title}».` : "Esos destacados ya estaban guardados.");
+    toast(n ? `${n} new highlight${n === 1 ? "" : "s"} in “${target.title}”.` : "Those highlights were already saved.");
   }
 }
 function readFile(file) {
   const r = new FileReader();
   r.onload = () => { S.found = parseClippings(String(r.result || "")); render(); };
-  r.onerror = () => toast("No se pudo leer el archivo.");
+  r.onerror = () => toast("Couldn't read the file.");
   r.readAsText(file);
 }
 ["dragover", "dragleave", "drop"].forEach(type => document.addEventListener(type, (e) => {
