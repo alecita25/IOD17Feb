@@ -1,4 +1,4 @@
-<title>Subrayados en Práctica</title>
+<title>Book Seed</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -48,6 +48,8 @@ button { cursor: pointer; }
 
 header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; margin-bottom: 20px; }
 header.top h1 { font-size: 1.75rem; font-weight: 700; }
+.brand { display: flex; flex-direction: column; gap: 2px; }
+.tagline { margin: 0; color: var(--muted); font-family: var(--font-display); font-style: italic; }
 .status { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .dot.on { background: var(--ok); }
@@ -172,7 +174,7 @@ details.howto ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); fon
 
 <div class="wrap">
   <header class="top">
-    <h1>Subrayados <span class="mark">en práctica</span></h1>
+    <div class="brand"><h1>Book <span class="mark">Seed</span></h1><p class="tagline">Lo que lees, convertido en lo que haces</p></div>
     <div class="status" id="status"><span class="dot"></span><span>Cargando…</span></div>
   </header>
   <div class="layout">
