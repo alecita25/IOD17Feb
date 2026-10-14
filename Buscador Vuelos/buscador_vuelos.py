@@ -1,17 +1,17 @@
 """
-Buscador de vuelos baratos (versión demo).
+Buscador de vuelos baratos.
 
-Genera ofertas de vuelos SIMULADAS pero realistas y permite buscar las más
-baratas en un rango de fechas, combinar ida y vuelta, y explorar destinos.
+Busca los vuelos más baratos en un rango de fechas, combina ida y vuelta,
+arma rutas alternativas y explora destinos. Los vuelos vienen de las fuentes
+activas (ver configurar_fuentes y fuentes.py); si no hay ninguna configurada
+se usan datos de demo SIMULADOS pero realistas.
 
-Los precios no son reales: se calculan a partir de la distancia entre
-aeropuertos y factores que sí afectan los precios de verdad (día de la
-semana, temporada alta, anticipación de compra, escalas y aerolínea).
-Son deterministas: la misma búsqueda (el mismo día) da los mismos resultados.
+Los precios de demo se calculan a partir de la distancia entre aeropuertos y
+factores que sí afectan los precios de verdad (día de la semana, temporada
+alta, anticipación de compra, escalas y aerolínea). Son deterministas: la
+misma búsqueda (el mismo día) da los mismos resultados.
 
-Para usar datos reales basta con reemplazar `generar_vuelos()` por una
-función que llame a una API (Google Flights vía SerpApi, Duffel, etc.) y
-devuelva la misma lista de diccionarios.
+Para usar datos reales: configurar_fuentes([FuenteSerpApi(clave), ...]).
 """
 
 import hashlib
@@ -204,6 +204,54 @@ def generar_vuelos(origen, destino, fecha, hoy=None):
     return vuelos
 
 
+# ---------- Fuentes de datos ----------
+# Por defecto se usan solo los datos de demo. La app (o tú) puede activar fuentes
+# reales con configurar_fuentes([...]) usando las clases de fuentes.py.
+_FUENTES = []
+ERRORES_FUENTES = {}  # nombre de la fuente -> último error
+
+
+def configurar_fuentes(fuentes):
+    """Define qué fuentes usar (lista de objetos de fuentes.py). Vacía = solo demo."""
+    global _FUENTES
+    _FUENTES = [f for f in fuentes if f.activa]
+    ERRORES_FUENTES.clear()
+
+
+def fuentes_activas():
+    return [f.nombre for f in _FUENTES] or ["Demo"]
+
+
+def obtener_vuelos(origen, destino, fecha, hoy=None):
+    """Vuelos de un día juntando todas las fuentes activas, sin repetidos."""
+    if not _FUENTES:
+        return [dict(v, fuente="Demo") for v in generar_vuelos(origen, destino, fecha, hoy=hoy)]
+
+    vuelos = []
+    for fuente in _FUENTES:
+        try:
+            vuelos += fuente.buscar(origen, destino, fecha, hoy=hoy)
+        except Exception as e:  # una fuente caída no debe botar la búsqueda completa
+            ERRORES_FUENTES[fuente.nombre] = f"{type(e).__name__}: {e}"
+    return _sin_repetidos(vuelos)
+
+
+def _sin_repetidos(vuelos):
+    """El mismo vuelo puede aparecer en varias fuentes: deja el más barato y anota los otros precios."""
+    grupos = {}
+    for v in vuelos:
+        llave = (v["salida"], v["llegada"], v["via"], v["aerolinea"].lower())
+        grupos.setdefault(llave, []).append(v)
+    resultado = []
+    for grupo in grupos.values():
+        grupo.sort(key=lambda v: v["precio_usd"])
+        mejor = dict(grupo[0])
+        if len(grupo) > 1:
+            mejor["precios_por_fuente"] = " · ".join(f"{v['fuente']} US${v['precio_usd']}" for v in grupo)
+        resultado.append(mejor)
+    return resultado
+
+
 def _filtrar(df, max_escalas=None, aerolineas=None, precio_max=None, max_duracion_h=None):
     if df.empty:
         return df
@@ -230,7 +278,7 @@ def buscar_vuelos(origen, destino, fecha_desde, fecha_hasta=None, hoy=None, **fi
 
     vuelos = []
     for i in range((hasta - desde).days + 1):
-        vuelos += generar_vuelos(origen, destino, desde + timedelta(days=i), hoy=hoy)
+        vuelos += obtener_vuelos(origen, destino, desde + timedelta(days=i), hoy=hoy)
 
     df = _filtrar(pd.DataFrame(vuelos), **filtros)
     if df.empty:
@@ -326,9 +374,10 @@ def combinaciones_flexibles(origen, destino, fecha_ida, fecha_vuelta, flex_dias=
     if not exacta.empty:
         combos["ahorro_vs_tus_fechas_usd"] = exacta["precio_total_usd"].iloc[0] - combos["precio_total_usd"]
 
-    columnas = ["fecha_ida", "dia_ida", "aerolinea_ida", "via_ida", "precio_usd_ida",
+    columnas = ["fecha_ida", "dia_ida", "aerolinea_ida", "via_ida", "precio_usd_ida", "fuente_ida",
                 "fecha_vuelta", "dia_vuelta", "aerolinea_vuelta", "via_vuelta",
-                "precio_usd_vuelta", "noches", "precio_total_usd", "ahorro_vs_tus_fechas_usd"]
+                "precio_usd_vuelta", "fuente_vuelta", "noches", "precio_total_usd",
+                "ahorro_vs_tus_fechas_usd"]
     columnas = [c for c in columnas if c in combos.columns]
     return combos.sort_values(["precio_total_usd", "noches"])[columnas].reset_index(drop=True)
 
@@ -337,17 +386,21 @@ def _hubs_candidatos(origen, destino, desvio):
     """Aeropuertos hub (donde alguna aerolínea conecta) que quedan "de camino"."""
     km = distancia_km(origen, destino)
     hubs = sorted({h for _, lista, _ in AEROLINEAS.values() for h in lista})
-    return [h for h in hubs if h not in (origen, destino)
+    hubs = [h for h in hubs if h not in (origen, destino)
             and distancia_km(origen, h) + distancia_km(h, destino) <= km * desvio]
+    return sorted(hubs, key=lambda h: distancia_km(origen, h) + distancia_km(h, destino))
 
 
 def rutas_alternativas(origen, destino, fecha, escala_min_h=2, escala_max_h=12,
-                       max_escalas=2, desvio=1.6, hoy=None):
+                       max_escalas=2, desvio=1.6, max_hubs=None, hoy=None):
     """Arma rutas con pasajes separados (1 o 2 escalas) y las compara con la ruta más directa.
 
     Cada tramo es un vuelo sin escalas comprado por separado (p. ej. una low cost
     hasta un hub + otra aerolínea desde ahí). Solo se aceptan conexiones con una
     espera entre escala_min_h y escala_max_h horas.
+
+    max_hubs limita cuántos hubs se prueban (los más "de camino" primero): con
+    fuentes reales cada tramo es una consulta a la API.
 
     Devuelve (referencia, rutas):
       - referencia: el pasaje único más barato con el menor número de escalas
@@ -391,6 +444,8 @@ def rutas_alternativas(origen, destino, fecha, escala_min_h=2, escala_max_h=12,
 
     candidatos = []
     hubs = _hubs_candidatos(origen, destino, desvio)
+    if max_hubs:
+        hubs = hubs[:max_hubs]
     if max_escalas >= 1:
         candidatos += [[origen, h, destino] for h in hubs]
     if max_escalas >= 2:
@@ -408,6 +463,8 @@ def rutas_alternativas(origen, destino, fecha, escala_min_h=2, escala_max_h=12,
         it = mejor_ruta(paradas)
         if not it:
             continue
+        # Cada hora es local de su aeropuerto: la espera se calcula en el mismo
+        # aeropuerto (correcto) y la duración total suma vuelos + esperas.
         esperas = [(b["salida"] - a["llegada"]).total_seconds() / 3600 for a, b in zip(it, it[1:])]
         filas.append({
             "tipo": "Pasajes separados",
@@ -416,11 +473,12 @@ def rutas_alternativas(origen, destino, fecha, escala_min_h=2, escala_max_h=12,
             "escalas": len(it) - 1,
             "salida": it[0]["salida"],
             "llegada": it[-1]["llegada"],
-            "duracion_h": round((it[-1]["llegada"] - it[0]["salida"]).total_seconds() / 3600, 1),
+            "duracion_h": round(sum(v["duracion_h"] for v in it) + sum(esperas), 1),
             "escala_mas_larga_h": round(max(esperas), 1),
             "precio_usd": sum(v["precio_usd"] for v in it),
             "detalle": " | ".join(f"{v['origen']}-{v['destino']} {v['aerolinea']} "
-                                  f"{v['salida']:%d/%m %H:%M} US${v['precio_usd']}" for v in it),
+                                  f"{v['salida']:%d/%m %H:%M} US${v['precio_usd']} ({v['fuente']})"
+                                  for v in it),
         })
 
     # Los pasajes únicos también compiten (el mejor por cada ruta)
@@ -438,7 +496,8 @@ def rutas_alternativas(origen, destino, fecha, escala_min_h=2, escala_max_h=12,
             "duracion_h": v["duracion_h"],
             "escala_mas_larga_h": None,
             "precio_usd": v["precio_usd"],
-            "detalle": "Conexión protegida por la aerolínea",
+            "detalle": (f"{v['fuente']}: puede combinar pasajes separados" if v["fuente"] == "Kiwi.com"
+                        else f"Un solo pasaje ({v['fuente']})"),
         })
 
     rutas = pd.DataFrame(filas)

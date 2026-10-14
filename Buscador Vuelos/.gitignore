@@ -1,0 +1,7 @@
+# Claves de las APIs: nunca subirlas a GitHub
+.streamlit/secrets.toml
+# Respuestas guardadas de las APIs
+.cache_vuelos/
+__pycache__/
+.pytest_cache/
+vuelos_*.csv

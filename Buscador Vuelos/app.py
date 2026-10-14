@@ -1,17 +1,24 @@
 """
-App web del buscador de vuelos baratos (datos de demo).
+App web del buscador de vuelos baratos.
+
+Junta resultados de varias fuentes (Google Flights vía SerpApi, Duffel y
+Kiwi.com) cuando les pones su clave; sin claves funciona con datos de demo.
 
 Ejecutar con:
-    streamlit run app.py
+    python -m streamlit run app.py
 """
 
+import hashlib
+import os
 from datetime import date, timedelta
+from urllib.parse import quote
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
 import buscador_vuelos as bv
+import fuentes
 
 AZUL, NARANJA = "#2a78d6", "#eb6834"
 
@@ -27,61 +34,159 @@ def usd(valor):
     return f"US$ {valor:,.0f}".replace(",", ".")
 
 
+def clave_guardada(nombre):
+    """Clave desde .streamlit/secrets.toml o variable de entorno (si existe)."""
+    try:
+        if nombre in st.secrets:
+            return st.secrets[nombre]
+    except Exception:
+        pass
+    return os.environ.get(nombre, "")
+
+
+# ---------- Fuentes de datos ----------
+with st.sidebar:
+    with st.expander("🔑 Fuentes de datos", expanded=False):
+        st.caption("Pega la clave de cada servicio que quieras usar. Sin claves, la app usa datos de demo.")
+        clave_serp = st.text_input("SerpApi (Google Flights)", clave_guardada("SERPAPI_KEY"), type="password",
+                                   help="Cuenta gratis en serpapi.com → Dashboard → Your Private API Key")
+        clave_duffel = st.text_input("Duffel", clave_guardada("DUFFEL_TOKEN"), type="password",
+                                     help="Cuenta en duffel.com → Developers → Access tokens")
+        clave_kiwi = st.text_input("Kiwi.com (Tequila)", clave_guardada("KIWI_API_KEY"), type="password",
+                                   help="tequila.kiwi.com → My solutions → API key")
+
+claves = (clave_serp.strip(), clave_duffel.strip(), clave_kiwi.strip())
+if "fuentes" not in st.session_state or st.session_state["claves"] != claves:
+    st.session_state["claves"] = claves
+    st.session_state["fuentes"] = [fuentes.FuenteSerpApi(claves[0]), fuentes.FuenteDuffel(claves[1]),
+                                   fuentes.FuenteKiwi(claves[2])]
+bv.configurar_fuentes(st.session_state["fuentes"])
+modo_real = bv.fuentes_activas() != ["Demo"]
+# Para la caché de Streamlit: qué fuentes están activas (sin guardar las claves en claro)
+fuentes_key = tuple(f"{f.nombre}:{hashlib.md5(f.clave.encode()).hexdigest()[:8]}"
+                    for f in st.session_state["fuentes"] if f.activa)
+
 # ---------- Formulario ----------
 with st.sidebar:
-    st.header("✈️ Tu búsqueda")
-    codigos = sorted(bv.AEROPUERTOS, key=nombre_aeropuerto)
-    origen = st.selectbox("Origen", codigos, index=codigos.index("BNE"),
-                          format_func=nombre_aeropuerto)
-    destino = st.selectbox("Destino", codigos, index=codigos.index("LIM"),
-                           format_func=nombre_aeropuerto)
+    with st.form("formulario"):
+        st.header("✈️ Tu búsqueda")
+        codigos = sorted(bv.AEROPUERTOS, key=nombre_aeropuerto)
+        origen = st.selectbox("Origen", codigos, index=codigos.index("BNE"), format_func=nombre_aeropuerto)
+        destino = st.selectbox("Destino", codigos, index=codigos.index("LIM"), format_func=nombre_aeropuerto)
 
-    hoy = date.today()
-    fecha_ida = st.date_input("Fecha de ida", hoy + timedelta(days=60), min_value=hoy)
-    fecha_vuelta = st.date_input("Fecha de vuelta", fecha_ida + timedelta(days=14),
-                                 min_value=fecha_ida + timedelta(days=1))
-    flex = st.slider("Días flexibles (antes y después)", 0, 7, 3)
+        hoy = date.today()
+        fecha_ida = st.date_input("Fecha de ida", hoy + timedelta(days=60), min_value=hoy)
+        fecha_vuelta = st.date_input("Fecha de vuelta", hoy + timedelta(days=74), min_value=hoy)
+        flex = st.slider("Días flexibles (antes y después)", 0, 7, 2 if modo_real else 3)
 
-    st.subheader("Filtros")
-    max_escalas = st.radio("Escalas máximas", [0, 1, 2], index=2, horizontal=True,
-                           format_func=lambda n: "Directo" if n == 0 else str(n))
-    precio_max = st.number_input("Precio máximo por tramo (US$, 0 = sin límite)",
-                                 min_value=0, value=0, step=50)
+        st.subheader("Filtros")
+        max_escalas = st.radio("Escalas máximas", [0, 1, 2], index=2, horizontal=True,
+                               format_func=lambda n: "Directo" if n == 0 else str(n))
+        precio_max = st.number_input("Precio máximo por tramo (US$, 0 = sin límite)",
+                                     min_value=0, value=0, step=50)
 
-    st.subheader("Rutas alternativas")
-    escala_min, escala_max = st.slider("Espera en cada conexión (horas)", 1, 24, (3, 10),
-                                       help="Para pasajes separados conviene dejar al menos "
-                                            "3 h: si se atrasa un vuelo, la otra aerolínea no te espera.")
+        st.subheader("Rutas alternativas")
+        escala_min, escala_max = st.slider(
+            "Espera en cada conexión (horas)", 1, 24, (3, 10),
+            help="Para pasajes separados conviene dejar al menos 3 h: si se atrasa un vuelo, "
+                 "la otra aerolínea no te espera.")
+
+        consultas_fechas = 2 * (2 * flex + 1)
+        if modo_real:
+            st.caption(f"Esta búsqueda usa ~{consultas_fechas} consultas por fuente "
+                       "(las repetidas salen de la caché y no se cobran).")
+        buscar = st.form_submit_button("🔎 Buscar vuelos", type="primary", width="stretch")
+
+    st.caption("Fuentes activas: " + ", ".join(bv.fuentes_activas()))
+
+if buscar or ("busqueda" not in st.session_state and not modo_real):
+    st.session_state["busqueda"] = dict(
+        origen=origen, destino=destino, fecha_ida=fecha_ida, fecha_vuelta=fecha_vuelta, flex=flex,
+        filtros=(("max_escalas", max_escalas), ("precio_max", precio_max or None)),
+        escala_min=escala_min, escala_max=escala_max)
+
+if "busqueda" not in st.session_state:
+    st.title("✈️ Buscador de vuelos baratos")
+    st.info("Completa tu búsqueda en la barra de la izquierda y presiona **🔎 Buscar vuelos**.")
+    st.stop()
+
+b = st.session_state["busqueda"]
+origen, destino, fecha_ida, fecha_vuelta, flex = b["origen"], b["destino"], b["fecha_ida"], b["fecha_vuelta"], b["flex"]
+filtros_key, filtros = b["filtros"], dict(b["filtros"])
 
 if origen == destino:
     st.error("El origen y el destino tienen que ser distintos.")
     st.stop()
-
-filtros = dict(max_escalas=max_escalas, precio_max=precio_max or None)
+if fecha_vuelta <= fecha_ida:
+    st.error("La fecha de vuelta tiene que ser posterior a la de ida.")
+    st.stop()
 
 st.title(f"{bv.AEROPUERTOS[origen][0]} → {bv.AEROPUERTOS[destino][0]}")
-st.caption("⚠️ Precios **simulados** con fines de demostración (distancia, temporada, día de la semana, "
-           "anticipación, escalas y aerolínea). No son tarifas reales.")
+if modo_real:
+    st.caption(f"Precios reales de: **{', '.join(bv.fuentes_activas())}**, convertidos a dólares. "
+               "Los precios cambian a cada rato: confírmalos siempre en la página antes de comprar.")
+else:
+    st.caption("⚠️ Precios **simulados** con fines de demostración. Para precios reales, agrega tus claves "
+               "en **🔑 Fuentes de datos** (barra izquierda).")
+
+# Comparar la misma búsqueda en otras páginas
+ida_txt, vuelta_txt = fecha_ida.isoformat(), fecha_vuelta.isoformat()
+enlaces = {
+    "Google Flights": "https://www.google.com/travel/flights?q=" + quote(
+        f"Flights to {destino} from {origen} on {ida_txt} through {vuelta_txt}"),
+    "Skyscanner": f"https://www.skyscanner.net/transport/flights/{origen.lower()}/{destino.lower()}/"
+                  f"{fecha_ida:%y%m%d}/{fecha_vuelta:%y%m%d}/",
+    "Kayak": f"https://www.kayak.com/flights/{origen}-{destino}/{ida_txt}/{vuelta_txt}",
+    "Momondo": f"https://www.momondo.com/flight-search/{origen}-{destino}/{ida_txt}/{vuelta_txt}",
+    "Kiwi.com": "https://www.kiwi.com/",
+    "JetSMART": "https://jetsmart.com/",
+    "Sky Airline": "https://www.skyairline.com/",
+    "Jetstar": "https://www.jetstar.com/",
+}
+with st.expander("🔗 Comparar esta búsqueda en otras páginas"):
+    columnas = st.columns(4)
+    for i, (nombre, url) in enumerate(enlaces.items()):
+        columnas[i % 4].link_button(nombre, url, width="stretch")
+    st.caption("Google Flights, Skyscanner, Kayak y Momondo se abren con tus fechas; en Kiwi.com y en las "
+               "low cost tienes que escribir la búsqueda.")
 
 
-@st.cache_data(show_spinner="Buscando vuelos…")
-def cargar_combinaciones(origen, destino, ida, vuelta, flex, filtros):
-    return bv.combinaciones_flexibles(origen, destino, ida, vuelta, flex, **dict(filtros))
+# Cada función devuelve (resultado, errores de las fuentes) para que los avisos
+# sigan apareciendo aunque el resultado salga de la caché.
+def _con_errores(funcion, *args, **kwargs):
+    bv.ERRORES_FUENTES.clear()
+    resultado = funcion(*args, **kwargs)
+    return resultado, dict(bv.ERRORES_FUENTES)
 
 
-@st.cache_data(show_spinner="Buscando vuelos…")
-def cargar_vuelos(origen, destino, desde, hasta, filtros):
-    return bv.buscar_vuelos(origen, destino, desde, hasta, **dict(filtros))
+@st.cache_data(show_spinner="Buscando vuelos…", ttl=3600)
+def cargar_combinaciones(origen, destino, ida, vuelta, flex, filtros, fuentes_key):
+    return _con_errores(bv.combinaciones_flexibles, origen, destino, ida, vuelta, flex, **dict(filtros))
 
 
-@st.cache_data(show_spinner="Armando rutas alternativas…")
-def cargar_rutas(origen, destino, fecha, escala_min, escala_max, max_escalas):
-    return bv.rutas_alternativas(origen, destino, fecha, escala_min_h=escala_min,
-                                 escala_max_h=escala_max, max_escalas=max_escalas)
+@st.cache_data(show_spinner="Buscando vuelos…", ttl=3600)
+def cargar_vuelos(origen, destino, desde, hasta, filtros, fuentes_key):
+    return _con_errores(bv.buscar_vuelos, origen, destino, desde, hasta, **dict(filtros))
 
 
-filtros_key = tuple(sorted(filtros.items()))
-combos = cargar_combinaciones(origen, destino, fecha_ida, fecha_vuelta, flex, filtros_key)
+@st.cache_data(show_spinner="Armando rutas alternativas…", ttl=3600)
+def cargar_rutas(origen, destino, fecha, escala_min, escala_max, max_escalas, max_hubs, fuentes_key):
+    return _con_errores(bv.rutas_alternativas, origen, destino, fecha, escala_min_h=escala_min,
+                        escala_max_h=escala_max, max_escalas=max_escalas, max_hubs=max_hubs)
+
+
+@st.cache_data(show_spinner="Revisando destinos…", ttl=3600)
+def cargar_destinos(origen, desde, hasta, filtros, fuentes_key):
+    return _con_errores(bv.explorar_destinos, origen, desde, hasta, **dict(filtros))
+
+
+def mostrar_errores(errores):
+    for nombre, error in errores.items():
+        st.warning(f"**{nombre}** no respondió: {error}")
+
+
+combos, errores = cargar_combinaciones(origen, destino, fecha_ida, fecha_vuelta, flex, filtros_key, fuentes_key)
+mostrar_errores(errores)
 
 tab_fechas, tab_vuelos, tab_rutas, tab_destinos = st.tabs(
     ["📅 Mejores fechas", "🛫 Todos los vuelos", "🔀 Rutas alternativas", "🌎 Explorar destinos"])
@@ -113,6 +218,8 @@ with tab_fechas:
         })
         if "ahorro_vs_tus_fechas_usd" in top:
             tabla["Ahorro vs. tus fechas (US$)"] = top["ahorro_vs_tus_fechas_usd"]
+        if modo_real:
+            tabla["Fuente"] = top["fuente_ida"] + " / " + top["fuente_vuelta"]
         st.dataframe(tabla, hide_index=True, width="stretch")
 
         st.subheader("Precio total según fechas de ida y vuelta")
@@ -146,10 +253,11 @@ with tab_fechas:
 with tab_vuelos:
     sentido = st.radio("Tramo", ["Ida", "Vuelta"], horizontal=True)
     if sentido == "Ida":
-        a, b, centro = origen, destino, fecha_ida
+        a, b_, centro = origen, destino, fecha_ida
     else:
-        a, b, centro = destino, origen, fecha_vuelta
-    vuelos = cargar_vuelos(a, b, centro - timedelta(days=flex), centro + timedelta(days=flex), filtros_key)
+        a, b_, centro = destino, origen, fecha_vuelta
+    vuelos, _ = cargar_vuelos(a, b_, centro - timedelta(days=flex), centro + timedelta(days=flex),
+                              filtros_key, fuentes_key)
 
     if vuelos.empty:
         st.warning("No hay vuelos con esos filtros.")
@@ -170,17 +278,24 @@ with tab_vuelos:
         )
         st.altair_chart(barras.properties(height=280), width="stretch")
 
+        columnas = ["fecha", "dia", "aerolinea", "salida", "llegada", "duracion_h", "via", "precio_usd",
+                    "fuente", "precios_por_fuente", "enlace"]
+        columnas = [c for c in columnas if c in vuelos.columns and vuelos[c].notna().any()]
         st.dataframe(
-            vuelos[["fecha", "dia", "aerolinea", "salida", "llegada", "duracion_h", "via", "precio_usd"]]
+            vuelos[columnas]
             .rename(columns={"fecha": "Fecha", "dia": "Día", "aerolinea": "Aerolínea", "salida": "Salida",
                              "llegada": "Llegada", "duracion_h": "Duración (h)", "via": "Escalas en",
-                             "precio_usd": "Precio (US$)"}),
+                             "precio_usd": "Precio (US$)", "fuente": "Fuente",
+                             "precios_por_fuente": "Precio en cada fuente", "enlace": "Comprar"}),
             hide_index=True, width="stretch",
             column_config={"Salida": st.column_config.DatetimeColumn(format="DD/MM HH:mm"),
-                           "Llegada": st.column_config.DatetimeColumn(format="DD/MM HH:mm")},
+                           "Llegada": st.column_config.DatetimeColumn(format="DD/MM HH:mm"),
+                           "Comprar": st.column_config.LinkColumn(display_text="Abrir")},
         )
+        st.caption("Horas locales de cada aeropuerto. \"Precio en cada fuente\" aparece cuando el mismo vuelo "
+                   "salió en más de una fuente.")
         st.download_button("Descargar CSV", vuelos.to_csv(index=False).encode("utf-8"),
-                           file_name=f"vuelos_{a}_{b}.csv", mime="text/csv")
+                           file_name=f"vuelos_{a}_{b_}.csv", mime="text/csv")
 
 # ---------- Rutas alternativas ----------
 with tab_rutas:
@@ -188,52 +303,71 @@ with tab_rutas:
         "Combina vuelos de **distintas aerolíneas con pasajes separados** (por ejemplo una low cost "
         "hasta un hub y otra aerolínea desde ahí) y los compara con la **ruta más directa**: el vuelo "
         "directo si existe o, si no, el pasaje único más barato con menos escalas.")
-    dia_ruta = st.date_input("Fecha del tramo de ida", fecha_ida, key="fecha_ruta",
-                             min_value=date.today())
-    referencia, rutas = cargar_rutas(origen, destino, dia_ruta, escala_min, escala_max, max_escalas)
+    c1, c2, c3 = st.columns(3)
+    dia_ruta = c1.date_input("Fecha del tramo de ida", fecha_ida, key="fecha_ruta", min_value=date.today())
+    escalas_ruta = c2.radio("Escalas", [1, 2], index=0 if modo_real else 1, horizontal=True)
+    max_hubs = c3.slider("Ciudades de conexión a probar", 1, 12, 4 if modo_real else 12,
+                         help="Se prueban primero las que quedan más de camino.")
 
-    if referencia is None or rutas.empty:
-        st.warning("No encontré vuelos para esa fecha.")
-    else:
-        ref_txt = "vuelo directo" if referencia["escalas"] == 0 else f"vía {referencia['via']}"
-        st.info(f"**Referencia:** {referencia['aerolinea']} ({ref_txt}) · "
-                f"{referencia['duracion_h']} h · **{usd(referencia['precio_usd'])}**")
+    armar = True
+    if modo_real:
+        consultas = 1 + max_hubs * 4 + (max_hubs * (max_hubs - 1) // 2) * 3 * (escalas_ruta == 2)
+        st.caption(f"Usa hasta ~{consultas} consultas por fuente.")
+        armar = st.button("Armar rutas alternativas", type="primary")
+        armar = armar or st.session_state.get("rutas_listas") == (dia_ruta, escalas_ruta, max_hubs, b)
 
-        orden = st.radio("Ordenar por", ["Precio", "Escala más corta", "Duración total"], horizontal=True)
-        columna_orden = {"Precio": ["precio_usd", "duracion_h"],
-                         "Escala más corta": ["escala_mas_larga_h", "precio_usd"],
-                         "Duración total": ["duracion_h", "precio_usd"]}[orden]
-        solo_ahorro = st.toggle("Mostrar solo rutas que ahorran", value=False)
-        vista = rutas[rutas["ahorro_usd"] > 0] if solo_ahorro else rutas
-        vista = vista.sort_values(columna_orden, na_position="first")
+    if armar:
+        if modo_real:
+            st.session_state["rutas_listas"] = (dia_ruta, escalas_ruta, max_hubs, b)
+        (referencia, rutas), errores = cargar_rutas(origen, destino, dia_ruta, b["escala_min"],
+                                                    b["escala_max"], escalas_ruta, max_hubs, fuentes_key)
+        mostrar_errores(errores)
 
-        vista = vista.assign(escala_txt=vista["escala_mas_larga_h"].map(
-            lambda h: "protegida" if pd.isna(h) else f"{h:.1f} h"))
-        st.dataframe(
-            vista[["ruta", "aerolineas", "tipo", "precio_usd", "ahorro_usd", "ahorro_pct",
-                   "escalas", "escala_txt", "duracion_h", "detalle"]]
-            .rename(columns={"tipo": "Tipo", "ruta": "Ruta", "aerolineas": "Aerolíneas",
-                             "escalas": "Escalas", "escala_txt": "Escala más larga",
-                             "duracion_h": "Duración total (h)", "precio_usd": "Precio (US$)",
-                             "ahorro_usd": "Ahorro (US$)", "ahorro_pct": "Ahorro (%)",
-                             "detalle": "Detalle"}),
-            hide_index=True, width="stretch",
-            column_config={"Ahorro (%)": st.column_config.NumberColumn(format="%.1f %%")},
-        )
-        st.caption("Ahorro negativo = sale más caro que la referencia. En pasajes separados la "
-                   "\"escala más larga\" es el tiempo de espera entre tus vuelos; si uno se atrasa y "
-                   "pierdes el siguiente, la otra aerolínea no está obligada a reubicarte. "
-                   "Las horas no consideran zonas horarias (demo).")
+        if referencia is None or rutas.empty:
+            st.warning("No encontré vuelos para esa fecha.")
+        else:
+            ref_txt = "vuelo directo" if referencia["escalas"] == 0 else f"vía {referencia['via']}"
+            st.info(f"**Referencia:** {referencia['aerolinea']} ({ref_txt}) · "
+                    f"{referencia['duracion_h']} h · **{usd(referencia['precio_usd'])}**")
+
+            orden = st.radio("Ordenar por", ["Precio", "Escala más corta", "Duración total"], horizontal=True)
+            columna_orden = {"Precio": ["precio_usd", "duracion_h"],
+                             "Escala más corta": ["escala_mas_larga_h", "precio_usd"],
+                             "Duración total": ["duracion_h", "precio_usd"]}[orden]
+            solo_ahorro = st.toggle("Mostrar solo rutas que ahorran", value=False)
+            vista = rutas[rutas["ahorro_usd"] > 0] if solo_ahorro else rutas
+            vista = vista.sort_values(columna_orden, na_position="first")
+
+            vista = vista.assign(escala_txt=vista["escala_mas_larga_h"].map(
+                lambda h: "protegida" if pd.isna(h) else f"{h:.1f} h"))
+            st.dataframe(
+                vista[["ruta", "aerolineas", "tipo", "precio_usd", "ahorro_usd", "ahorro_pct",
+                       "escalas", "escala_txt", "duracion_h", "detalle"]]
+                .rename(columns={"tipo": "Tipo", "ruta": "Ruta", "aerolineas": "Aerolíneas",
+                                 "escalas": "Escalas", "escala_txt": "Escala más larga",
+                                 "duracion_h": "Duración total (h)", "precio_usd": "Precio (US$)",
+                                 "ahorro_usd": "Ahorro (US$)", "ahorro_pct": "Ahorro (%)",
+                                 "detalle": "Detalle"}),
+                hide_index=True, width="stretch",
+                column_config={"Ahorro (%)": st.column_config.NumberColumn(format="%.1f %%")},
+            )
+            st.caption("Ahorro negativo = sale más caro que la referencia. En pasajes separados la "
+                       "\"escala más larga\" es el tiempo de espera entre tus vuelos; si uno se atrasa y "
+                       "pierdes el siguiente, la otra aerolínea no está obligada a reubicarte."
+                       + ("" if modo_real else " Las horas no consideran zonas horarias (demo)."))
 
 # ---------- Explorar destinos ----------
 with tab_destinos:
+    # Con fuentes reales se revisa solo la fecha de ida (cada destino y día es una consulta)
+    desde = fecha_ida if modo_real else fecha_ida - timedelta(days=flex)
+    hasta = fecha_ida if modo_real else fecha_ida + timedelta(days=flex)
     st.markdown(f"El vuelo más barato desde **{nombre_aeropuerto(origen)}** a cada destino, "
-                f"saliendo entre el {fecha_ida - timedelta(days=flex):%d/%m} y el "
-                f"{fecha_ida + timedelta(days=flex):%d/%m}.")
+                f"saliendo entre el {desde:%d/%m} y el {hasta:%d/%m}.")
+    if modo_real:
+        st.caption(f"Usa ~{len(bv.AEROPUERTOS) - 1} consultas por fuente.")
     if st.button("Explorar destinos"):
-        with st.spinner("Revisando destinos…"):
-            destinos = bv.explorar_destinos(origen, fecha_ida - timedelta(days=flex),
-                                            fecha_ida + timedelta(days=flex), **filtros)
+        destinos, errores = cargar_destinos(origen, desde, hasta, filtros_key, fuentes_key)
+        mostrar_errores(errores)
         if destinos.empty:
             st.warning("No hay vuelos con esos filtros.")
         else:
@@ -247,3 +381,7 @@ with tab_destinos:
             )
             st.altair_chart(grafico.properties(height=26 * len(destinos)), width="stretch")
             st.dataframe(destinos, hide_index=True, width="stretch")
+
+if modo_real:
+    usadas = " · ".join(f"{f.nombre}: {f.consultas}" for f in st.session_state["fuentes"] if f.activa)
+    st.sidebar.caption(f"Consultas a las APIs en esta sesión: {usadas}")
