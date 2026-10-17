@@ -414,12 +414,14 @@ with tab_alertas:
         borrador = {"fecha_vuelta": None if a_solo_ida else a_vuelta, "flex_dias": a_flex, "cada_dias": a_cada}
         uso_nueva = al.consultas_al_mes(borrador)
         uso_actual = sum(al.consultas_al_mes(a) for a in al.leer_alertas())
+        cupo = al.busquedas_al_mes()
+        muy_alto = uso_actual + uso_nueva > cupo * 0.8
         texto_uso = (f"Esta alerta usa **{al.consultas_por_revision(borrador)} consultas por revisión**, "
                      f"unas **{uso_nueva} al mes** por fuente. Con tus otras alertas sumarías "
-                     f"**{uso_actual + uso_nueva} de ~100** búsquedas gratis de SerpApi.")
-        (st.warning if uso_actual + uso_nueva > 80 else st.caption)(
+                     f"**{uso_actual + uso_nueva} de {cupo}** búsquedas al mes de tu plan de SerpApi.")
+        (st.warning if muy_alto else st.caption)(
             texto_uso + (" Te quedaría poco para buscar: prueba revisar cada más días o con menos días "
-                         "flexibles." if uso_actual + uso_nueva > 80 else ""))
+                         "flexibles." if muy_alto else ""))
 
         if st.button("🔔 Crear alerta", type="primary"):
             if not a_solo_ida and a_vuelta <= a_ida:
@@ -527,8 +529,12 @@ with tab_alertas:
             n_tg_token = c1.text_input("Token del bot de Telegram", secretos.get("TELEGRAM_TOKEN", ""),
                                        type="password")
             n_tg_chat = c2.text_input("Chat ID de Telegram", secretos.get("TELEGRAM_CHAT_ID", ""))
+            n_cupo = c1.number_input("Búsquedas al mes de tu plan de SerpApi", min_value=1, step=50,
+                                     value=al.busquedas_al_mes(),
+                                     help="El plan gratis trae 250. Míralo en tu Dashboard de serpapi.com.")
             if st.form_submit_button("💾 Guardar"):
-                al.guardar_secretos({"SERPAPI_KEY": n_serp, "EMAIL_REMITENTE": n_email,
+                al.guardar_secretos({"BUSQUEDAS_MES": str(int(n_cupo)), "SERPAPI_KEY": n_serp,
+                                     "EMAIL_REMITENTE": n_email,
                                      "EMAIL_CLAVE_APP": n_clave, "TELEGRAM_TOKEN": n_tg_token,
                                      "TELEGRAM_CHAT_ID": n_tg_chat})
                 st.success("Guardado.")

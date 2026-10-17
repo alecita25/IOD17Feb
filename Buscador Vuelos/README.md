@@ -27,7 +27,7 @@ izquierda, en **🔑 Fuentes de datos**.
 
 | Fuente | Qué aporta | Cómo obtener la clave |
 |---|---|---|
-| **Google Flights (SerpApi)** | La mayoría de las aerolíneas y agencias, incluidas low cost (JetSMART, Sky, Jetstar) | Crea una cuenta gratis en [serpapi.com](https://serpapi.com) → *Dashboard* → *Your Private API Key*. Incluye unas 100 búsquedas al mes. |
+| **Google Flights (SerpApi)** | La mayoría de las aerolíneas y agencias, incluidas low cost (JetSMART, Sky, Jetstar) | Crea una cuenta gratis en [serpapi.com](https://serpapi.com) → *Dashboard* → *Your Private API Key*. El plan gratis trae 250 búsquedas al mes (revisa el número exacto en tu *Dashboard*). |
 | **Duffel** | Más de 300 aerolíneas conectadas directamente | Crea una cuenta en [duffel.com](https://duffel.com) → *Developers* → *Access tokens*. Usa un token de prueba (`duffel_test_...`) para practicar; los precios reales requieren un token *live*. |
 | **Kiwi.com (Tequila)** | Combina aerolíneas distintas con pasajes separados para bajar el precio | Solicita acceso en [tequila.kiwi.com](https://tequila.kiwi.com). El acceso para nuevos usuarios no está garantizado. |
 
@@ -72,13 +72,15 @@ y pégalas ahí. Ese archivo está en `.gitignore`, así que **nunca se sube a G
 4. El gráfico muestra cómo ha cambiado el precio de cada alerta día a día.
 
 Cada día vigilado es 1 consulta por fuente (2 si es ida y vuelta). La app te muestra cuántas consultas al mes
-usa cada alerta. Ejemplos con ida y vuelta, frente a las ~100 gratis de SerpApi:
+usa cada alerta. Ejemplos con ida y vuelta, frente a las 250 del plan gratis de SerpApi (si tu plan tiene otro número,
+cámbialo en **⚙️ Configurar avisos y claves**):
 
 | Días flexibles | Revisar | Consultas al mes |
 |---|---|---|
 | 0 (fechas exactas) | todos los días | 60 |
 | ±1 | cada 3 días | 60 |
 | ±2 | cada 7 días | ~43 |
+| ±1 | todos los días | 180 |
 | ±2 | todos los días | 300 (no alcanza) |
 
 **Importante:** para que la revisión diaria use precios reales, guarda tu clave de SerpApi en

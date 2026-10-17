@@ -118,6 +118,14 @@ def leer_secretos():
     return secretos
 
 
+def busquedas_al_mes():
+    """Búsquedas al mes del plan de SerpApi (250 en el plan gratis, o lo que hayas guardado)."""
+    try:
+        return int(leer_secretos().get("BUSQUEDAS_MES") or 250)
+    except (ValueError, tomllib.TOMLDecodeError):
+        return 250
+
+
 def configurar_fuentes_desde(secretos):
     bv.configurar_fuentes([fuentes.FuenteSerpApi(secretos.get("SERPAPI_KEY")),
                            fuentes.FuenteDuffel(secretos.get("DUFFEL_TOKEN")),

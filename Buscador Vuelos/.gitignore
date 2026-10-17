@@ -9,3 +9,4 @@ vuelos_*.csv
 alertas.json
 historial_precios.csv
 alertas.log
+revisar_alertas.bat

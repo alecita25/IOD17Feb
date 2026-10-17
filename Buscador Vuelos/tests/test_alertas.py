@@ -133,3 +133,9 @@ def test_no_consulta_fechas_pasadas():
     with mock.patch.object(bv, "obtener_vuelos", return_value=[]) as obtener:
         bv.buscar_vuelos("BNE", "LIM", "2026-10-15", "2026-10-19", hoy=HOY)
     assert [c.args[2].isoformat() for c in obtener.call_args_list] == ["2026-10-17", "2026-10-18", "2026-10-19"]
+
+
+def test_busquedas_al_mes_por_defecto_y_guardado():
+    assert al.busquedas_al_mes() == 250
+    al.guardar_secretos({"BUSQUEDAS_MES": "1000"})
+    assert al.busquedas_al_mes() == 1000
