@@ -7,6 +7,7 @@ con fechas flexibles y rutas alternativas. Sin claves funciona con **datos de de
 - `fuentes.py`: las fuentes de datos (demo, Google Flights vía SerpApi, Duffel y Kiwi.com).
 - `buscador_vuelos.py`: la lógica de búsqueda (fechas flexibles, rutas alternativas, explorar destinos).
 - `Buscador de vuelos baratos.ipynb`: versión notebook (usa datos de demo).
+- `alertas.py`: alertas de precio (revisión diaria y avisos).
 - `tests/`: pruebas (`python -m pytest tests`).
 
 ## Cómo abrir la app (Windows, PowerShell)
@@ -56,6 +57,42 @@ y pégalas ahí. Ese archivo está en `.gitignore`, así que **nunca se sube a G
 - **🔀 Rutas alternativas**: arma rutas con 1 o 2 escalas combinando aerolíneas con pasajes separados
   (low cost incluidas) y muestra cuánto ahorra cada una frente a la ruta más directa.
 - **🌎 Explorar destinos**: el vuelo más barato a cada destino desde tu origen.
+- **🔔 Alertas**: guarda vuelos y te avisa cuando bajan de precio (ver abajo).
+
+## Alertas de precio
+
+1. En la pestaña **🔔 Alertas**, elige las fechas y (opcional) un **precio objetivo**, y presiona **🔔 Crear alerta**.
+   La app guarda el precio de hoy.
+2. Te avisa cuando el precio baja de tu objetivo o, si no pusiste objetivo, cuando aparece un precio al menos
+   3 % más bajo que el mínimo visto hasta ahora.
+3. En **⏰ Revisión automática diaria** presiona **Activar**: Windows revisará tus alertas una vez al día a la hora
+   que elijas, aunque la app esté cerrada (el computador tiene que estar encendido). También puedes revisar
+   cuando quieras con **🔄 Revisar todas ahora**.
+4. El gráfico muestra cómo ha cambiado el precio de cada alerta día a día.
+
+Cada revisión usa 1 consulta por fuente (2 si es ida y vuelta). Con una alerta de ida y vuelta revisada a
+diario gastas unas 60 consultas al mes, dentro de las 100 gratis de SerpApi.
+
+**Importante:** para que la revisión diaria use precios reales, guarda tu clave de SerpApi en
+**⚙️ Configurar avisos y claves** (la revisión automática no ve las claves pegadas en la barra lateral).
+
+### Cómo te llegan los avisos
+- **Notificación de Windows**: siempre activa, no necesita configuración.
+- **Email (Gmail)**: necesitas una *contraseña de aplicación* (no tu contraseña normal):
+  1. Activa la verificación en dos pasos en tu cuenta de Google.
+  2. Entra a <https://myaccount.google.com/apppasswords>, crea una contraseña llamada "Vuelos" y copia las 16 letras.
+  3. En la app, pon tu Gmail y esa contraseña en **⚙️ Configurar avisos y claves** y presiona **💾 Guardar**.
+- **Telegram (al celular)**:
+  1. En Telegram, busca **@BotFather**, escríbele `/newbot` y sigue los pasos. Te entrega un **token**.
+  2. Busca tu bot nuevo y mándale cualquier mensaje (por ejemplo "hola").
+  3. Abre en el navegador `https://api.telegram.org/bot<TU_TOKEN>/getUpdates` y copia el número que aparece en
+     `"chat":{"id": ...}`. Ese es tu **Chat ID**.
+  4. Pega el token y el Chat ID en **⚙️ Configurar avisos y claves** y presiona **💾 Guardar**.
+
+Después presiona **📨 Enviar aviso de prueba** para comprobar que te llegan.
+
+Si prefieres algo sin configurar nada, Google Flights también tiene alertas: busca tu vuelo en
+<https://www.google.com/travel/flights> y activa **"Seguir precios"**; te llegan por email.
 
 ## Datos de demo
 

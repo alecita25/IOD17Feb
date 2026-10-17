@@ -3,5 +3,6 @@ matplotlib>=3.7
 streamlit>=1.50
 altair>=5.0
 requests>=2.28
+plyer>=2.1
 jupyter
 pytest

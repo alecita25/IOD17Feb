@@ -5,3 +5,7 @@
 __pycache__/
 .pytest_cache/
 vuelos_*.csv
+# Datos personales de las alertas
+alertas.json
+historial_precios.csv
+alertas.log

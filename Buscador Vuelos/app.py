@@ -17,10 +17,12 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+import alertas as al
 import buscador_vuelos as bv
 import fuentes
 
 AZUL, NARANJA = "#2a78d6", "#eb6834"
+COLORES_SERIES = [AZUL, NARANJA, "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
 
 st.set_page_config(page_title="Buscador de vuelos baratos", page_icon="✈️", layout="wide")
 
@@ -37,11 +39,9 @@ def usd(valor):
 def clave_guardada(nombre):
     """Clave desde .streamlit/secrets.toml o variable de entorno (si existe)."""
     try:
-        if nombre in st.secrets:
-            return st.secrets[nombre]
-    except Exception:
-        pass
-    return os.environ.get(nombre, "")
+        return al.leer_secretos().get(nombre, "")
+    except Exception:  # archivo con errores de formato
+        return os.environ.get(nombre, "")
 
 
 # ---------- Fuentes de datos ----------
@@ -188,8 +188,8 @@ def mostrar_errores(errores):
 combos, errores = cargar_combinaciones(origen, destino, fecha_ida, fecha_vuelta, flex, filtros_key, fuentes_key)
 mostrar_errores(errores)
 
-tab_fechas, tab_vuelos, tab_rutas, tab_destinos = st.tabs(
-    ["📅 Mejores fechas", "🛫 Todos los vuelos", "🔀 Rutas alternativas", "🌎 Explorar destinos"])
+tab_fechas, tab_vuelos, tab_rutas, tab_destinos, tab_alertas = st.tabs(
+    ["📅 Mejores fechas", "🛫 Todos los vuelos", "🔀 Rutas alternativas", "🌎 Explorar destinos", "🔔 Alertas"])
 
 # ---------- Mejores fechas ----------
 with tab_fechas:
@@ -381,6 +381,141 @@ with tab_destinos:
             )
             st.altair_chart(grafico.properties(height=26 * len(destinos)), width="stretch")
             st.dataframe(destinos, hide_index=True, width="stretch")
+
+# ---------- Alertas de precio ----------
+with tab_alertas:
+    st.markdown("Guarda un vuelo y la app revisa su precio **todos los días**. Te avisa cuando baja de tu "
+                "precio objetivo o cuando aparece un nuevo precio más bajo.")
+    if not modo_real:
+        st.warning("Sin claves, las alertas usan precios de **demo**. Para alertas reales, guarda tu clave de "
+                   "SerpApi en **⚙️ Configurar avisos y claves** (más abajo).")
+
+    with st.form("nueva_alerta"):
+        st.subheader("➕ Nueva alerta")
+        c1, c2, c3, c4 = st.columns(4)
+        a_ida = c1.date_input("Ida", fecha_ida, min_value=date.today())
+        a_solo_ida = c2.checkbox("Solo ida", value=False)
+        a_vuelta = c2.date_input("Vuelta", fecha_vuelta, min_value=date.today())
+        a_objetivo = c3.number_input("Precio objetivo total (US$)", min_value=0, value=0, step=50,
+                                     help="Te avisa cuando el precio baje de este valor. "
+                                          "Con 0, te avisa cada vez que aparezca un precio más bajo.")
+        a_escalas = c4.radio("Escalas máximas", [0, 1, 2], index=2, horizontal=True, key="alerta_escalas",
+                             format_func=lambda n: "Directo" if n == 0 else str(n))
+        st.caption(f"Ruta: **{nombre_aeropuerto(origen)} → {nombre_aeropuerto(destino)}** "
+                   "(cámbiala en la barra izquierda y presiona Buscar). Cada revisión usa "
+                   f"{'1 consulta' if a_solo_ida else '2 consultas'} por fuente.")
+        if st.form_submit_button("🔔 Crear alerta", type="primary"):
+            if not a_solo_ida and a_vuelta <= a_ida:
+                st.error("La vuelta tiene que ser posterior a la ida.")
+            else:
+                nueva = al.crear_alerta(origen, destino, a_ida, None if a_solo_ida else a_vuelta,
+                                        a_objetivo or None, a_escalas)
+                with st.spinner("Revisando el precio de hoy…"):
+                    al.revisar_alertas(notificar=False, solo_ids=[nueva["id"]])
+                st.success("Alerta creada. Ya quedó guardado el precio de hoy.")
+
+    lista = al.leer_alertas()
+    historial = al.leer_historial()
+    st.subheader("Tus alertas")
+    for aviso in st.session_state.pop("avisos_alertas", []):
+        # "$" se escapa para que Streamlit no lo lea como fórmula matemática
+        texto = aviso.replace("$", "\\$").replace("\n", "  \n")
+        (st.success if aviso.startswith("✈️") else st.info)(texto)
+    if not lista:
+        st.info("Todavía no tienes alertas.")
+    else:
+        for alerta in lista:
+            precios = historial[historial["alerta_id"] == alerta["id"]].sort_values("revisado")
+            with st.container(border=True):
+                c1, c2 = st.columns([6, 1])
+                objetivo = (f"Objetivo: {usd(alerta['precio_objetivo'])}" if alerta.get("precio_objetivo")
+                            else "Avisa con cualquier bajada")
+                c1.markdown(f"**{al.describir(alerta)}**  \n{objetivo}".replace("$", "\\$"))
+                if c2.button("🗑️ Borrar", key=f"borrar_{alerta['id']}"):
+                    al.borrar_alerta(alerta["id"])
+                    st.rerun()
+                if precios.empty:
+                    st.caption("Todavía sin revisiones.")
+                else:
+                    ultimo, primero = precios.iloc[-1]["precio_total_usd"], precios.iloc[0]["precio_total_usd"]
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("Último precio", usd(ultimo),
+                              delta=f"{ultimo - primero:+,.0f} vs. el inicio" if ultimo != primero else None,
+                              delta_color="inverse")
+                    m2.metric("Mínimo visto", usd(precios["precio_total_usd"].min()))
+                    m3.metric("Revisiones", len(precios))
+
+        if not historial.empty:
+            nombres = {a["id"]: al.describir(a) for a in lista}
+            datos = historial[historial["alerta_id"].isin(nombres)].assign(
+                alerta=lambda d: d["alerta_id"].map(nombres))
+            if not datos.empty:
+                st.markdown("**Cómo ha cambiado el precio**")
+                linea = alt.Chart(datos).mark_line(point=alt.OverlayMarkDef(size=60), strokeWidth=2).encode(
+                    x=alt.X("revisado:T", title="Fecha de revisión"),
+                    y=alt.Y("precio_total_usd:Q", title="US$", scale=alt.Scale(zero=False)),
+                    color=alt.Color("alerta:N", title=None, legend=alt.Legend(orient="bottom", labelLimit=400),
+                                    scale=alt.Scale(range=COLORES_SERIES)),
+                    tooltip=[alt.Tooltip("alerta:N", title="Alerta"),
+                             alt.Tooltip("revisado:T", title="Revisado", format="%d/%m %H:%M"),
+                             alt.Tooltip("precio_total_usd:Q", title="US$", format=",.0f"),
+                             alt.Tooltip("detalle:N", title="Vuelos")],
+                )
+                st.altair_chart(linea.properties(height=260), width="stretch")
+
+        if st.button("🔄 Revisar todas ahora"):
+            with st.spinner("Revisando precios…"):
+                st.session_state["avisos_alertas"] = al.revisar_alertas(notificar=True) or \
+                    ["Ningún precio bajó por ahora."]
+            st.rerun()
+
+    st.divider()
+    st.subheader("⏰ Revisión automática diaria")
+    if os.name == "nt":
+        activa = al.revision_diaria_activa()
+        st.markdown(("✅ **Activada.** " if activa else "⏸️ **Desactivada.** ")
+                    + "Windows revisa tus alertas solo, una vez al día, aunque la app esté cerrada. "
+                      "El computador tiene que estar encendido a esa hora.")
+        c1, c2, c3 = st.columns([1, 1, 2])
+        hora = c1.time_input("Hora", value=pd.Timestamp("09:00").time(), step=1800)
+        if c2.button("Activar" if not activa else "Cambiar hora", type="primary"):
+            ok, msg = al.activar_revision_diaria(hora.strftime("%H:%M"))
+            (st.success if ok else st.error)(msg)
+        if activa and c3.button("Desactivar"):
+            ok, msg = al.desactivar_revision_diaria()
+            (st.success if ok else st.error)(msg)
+    else:
+        st.markdown("Programa `python alertas.py` para que se ejecute una vez al día "
+                    "(en Windows, la app lo hace con un botón).")
+
+    with st.expander("⚙️ Configurar avisos y claves"):
+        secretos = al.leer_secretos()
+        st.markdown("Para que la revisión diaria funcione con la app cerrada, las claves se guardan en tu "
+                    "computador (`.streamlit/secrets.toml`, que **no** se sube a GitHub).\n\n"
+                    "- **Escritorio**: siempre activo; aparece una notificación de Windows.\n"
+                    "- **Email**: con Gmail necesitas una *contraseña de aplicación* "
+                    "(myaccount.google.com → Seguridad → Contraseñas de aplicaciones).\n"
+                    "- **Telegram**: te llega al celular. Ver los pasos en el README.")
+        with st.form("config_avisos"):
+            n_serp = st.text_input("Clave de SerpApi", secretos.get("SERPAPI_KEY", ""), type="password")
+            c1, c2 = st.columns(2)
+            n_email = c1.text_input("Tu Gmail", secretos.get("EMAIL_REMITENTE", ""))
+            n_clave = c2.text_input("Contraseña de aplicación de Gmail", secretos.get("EMAIL_CLAVE_APP", ""),
+                                    type="password")
+            n_tg_token = c1.text_input("Token del bot de Telegram", secretos.get("TELEGRAM_TOKEN", ""),
+                                       type="password")
+            n_tg_chat = c2.text_input("Chat ID de Telegram", secretos.get("TELEGRAM_CHAT_ID", ""))
+            if st.form_submit_button("💾 Guardar"):
+                al.guardar_secretos({"SERPAPI_KEY": n_serp, "EMAIL_REMITENTE": n_email,
+                                     "EMAIL_CLAVE_APP": n_clave, "TELEGRAM_TOKEN": n_tg_token,
+                                     "TELEGRAM_CHAT_ID": n_tg_chat})
+                st.success("Guardado.")
+        if st.button("📨 Enviar aviso de prueba"):
+            canales = al.enviar_avisos(["✈️ Prueba: así te llegará el aviso cuando baje el precio de tu vuelo."])
+            if canales:
+                st.success("Aviso enviado por: " + ", ".join(canales))
+            else:
+                st.warning("No se pudo enviar por ningún canal. Revisa los datos guardados.")
 
 if modo_real:
     usadas = " · ".join(f"{f.nombre}: {f.consultas}" for f in st.session_state["fuentes"] if f.activa)
