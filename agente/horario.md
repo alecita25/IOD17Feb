@@ -3,7 +3,7 @@
 Bloques fijos. Lo que no aparece aquí es tiempo libre (donde aparece el scroll).
 Formato: `HH:MM–HH:MM  Actividad`
 
-## Rutina de mañana (lunes a viernes)
+## Rutina de mañana (lunes, martes, miércoles y viernes)
 
 05:15        Despertar
 05:30–06:30  Pilates
@@ -31,8 +31,9 @@ _Mañana: rutina de arriba, tren de las 08:06_
 18:00         Salir a correr después del trabajo
 ¿?            Llego a casa → **tarde libre**
 
-## Jueves
-_Mañana: rutina de arriba_
+## Jueves — día de descanso 😴
+_Sin pilates: descanso porque el miércoles (pilates + correr) termino muerta._
+_Energía baja todo el día → sugerir cosas suaves._
 ~09:00–18:00  Trabajo
 18:07         Tren de vuelta
 ~18:40        Llego a casa → **tarde libre**
@@ -47,7 +48,6 @@ _Mañana: rutina de arriba_
 ## Domingo
 
 ## Por confirmar
-- ¿Pilates es de lunes a viernes, o algunos días?
 - ¿A qué hora te acuestas? (si te levantas 05:15, para dormir 7–8 h serían ~21:15–22:15)
 - Miércoles: ¿a qué hora llegas a casa después de correr?
 - Fines de semana: ¿hay algo fijo?
