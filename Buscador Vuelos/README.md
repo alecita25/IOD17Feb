@@ -61,8 +61,9 @@ y pégalas ahí. Ese archivo está en `.gitignore`, así que **nunca se sube a G
 
 ## Alertas de precio
 
-1. En la pestaña **🔔 Alertas**, elige las fechas y (opcional) un **precio objetivo**, y presiona **🔔 Crear alerta**.
-   La app guarda el precio de hoy.
+1. En la pestaña **🔔 Alertas**, elige las fechas, cuántos **días flexibles** vigilar (± días alrededor de cada
+   fecha), **cada cuánto revisar** y (opcional) un **precio objetivo**, y presiona **🔔 Crear alerta**.
+   La app guarda el precio de hoy: el más barato entre todas las combinaciones de fechas que vigila.
 2. Te avisa cuando el precio baja de tu objetivo o, si no pusiste objetivo, cuando aparece un precio al menos
    3 % más bajo que el mínimo visto hasta ahora.
 3. En **⏰ Revisión automática diaria** presiona **Activar**: Windows revisará tus alertas una vez al día a la hora
@@ -70,8 +71,15 @@ y pégalas ahí. Ese archivo está en `.gitignore`, así que **nunca se sube a G
    cuando quieras con **🔄 Revisar todas ahora**.
 4. El gráfico muestra cómo ha cambiado el precio de cada alerta día a día.
 
-Cada revisión usa 1 consulta por fuente (2 si es ida y vuelta). Con una alerta de ida y vuelta revisada a
-diario gastas unas 60 consultas al mes, dentro de las 100 gratis de SerpApi.
+Cada día vigilado es 1 consulta por fuente (2 si es ida y vuelta). La app te muestra cuántas consultas al mes
+usa cada alerta. Ejemplos con ida y vuelta, frente a las ~100 gratis de SerpApi:
+
+| Días flexibles | Revisar | Consultas al mes |
+|---|---|---|
+| 0 (fechas exactas) | todos los días | 60 |
+| ±1 | cada 3 días | 60 |
+| ±2 | cada 7 días | ~43 |
+| ±2 | todos los días | 300 (no alcanza) |
 
 **Importante:** para que la revisión diaria use precios reales, guarda tu clave de SerpApi en
 **⚙️ Configurar avisos y claves** (la revisión automática no ve las claves pegadas en la barra lateral).

@@ -277,8 +277,11 @@ def buscar_vuelos(origen, destino, fecha_desde, fecha_hasta=None, hoy=None, **fi
         raise ValueError("fecha_hasta debe ser igual o posterior a fecha_desde")
 
     vuelos = []
+    hoy_ = _a_fecha(hoy) if hoy else date.today()
     for i in range((hasta - desde).days + 1):
-        vuelos += obtener_vuelos(origen, destino, desde + timedelta(days=i), hoy=hoy)
+        dia = desde + timedelta(days=i)
+        if dia >= hoy_:  # no se puede volar en el pasado (y las APIs reales gastarían una consulta)
+            vuelos += obtener_vuelos(origen, destino, dia, hoy=hoy)
 
     df = _filtrar(pd.DataFrame(vuelos), **filtros)
     if df.empty:

@@ -384,35 +384,53 @@ with tab_destinos:
 
 # ---------- Alertas de precio ----------
 with tab_alertas:
-    st.markdown("Guarda un vuelo y la app revisa su precio **todos los días**. Te avisa cuando baja de tu "
-                "precio objetivo o cuando aparece un nuevo precio más bajo.")
+    st.markdown("Guarda un vuelo y la app revisa su precio **automáticamente** (todos los días o cada los días "
+                "que elijas), en tus fechas o en días flexibles. Te avisa cuando baja de tu precio objetivo o "
+                "cuando aparece un nuevo precio más bajo.")
     if not modo_real:
         st.warning("Sin claves, las alertas usan precios de **demo**. Para alertas reales, guarda tu clave de "
                    "SerpApi en **⚙️ Configurar avisos y claves** (más abajo).")
 
-    with st.form("nueva_alerta"):
+    with st.container(border=True):
         st.subheader("➕ Nueva alerta")
-        c1, c2, c3, c4 = st.columns(4)
-        a_ida = c1.date_input("Ida", fecha_ida, min_value=date.today())
-        a_solo_ida = c2.checkbox("Solo ida", value=False)
-        a_vuelta = c2.date_input("Vuelta", fecha_vuelta, min_value=date.today())
+        st.caption(f"Ruta: **{nombre_aeropuerto(origen)} → {nombre_aeropuerto(destino)}** "
+                   "(cámbiala en la barra izquierda y presiona Buscar).")
+        c1, c2, c3 = st.columns(3)
+        a_ida = c1.date_input("Ida", fecha_ida, min_value=date.today(), key="alerta_ida")
+        a_solo_ida = c1.checkbox("Solo ida", value=False, key="alerta_solo_ida")
+        a_vuelta = c1.date_input("Vuelta", fecha_vuelta, min_value=date.today(), key="alerta_vuelta",
+                                 disabled=a_solo_ida)
+        a_flex = c2.select_slider("Días flexibles (±)", options=[0, 1, 2, 3], value=0, key="alerta_flex",
+                                  help="También vigila esa cantidad de días antes y después de cada fecha.")
+        a_cada = c2.select_slider("Revisar", options=[1, 2, 3, 7], value=1, key="alerta_cada",
+                                  format_func=lambda n: "todos los días" if n == 1 else f"cada {n} días")
         a_objetivo = c3.number_input("Precio objetivo total (US$)", min_value=0, value=0, step=50,
+                                     key="alerta_objetivo",
                                      help="Te avisa cuando el precio baje de este valor. "
                                           "Con 0, te avisa cada vez que aparezca un precio más bajo.")
-        a_escalas = c4.radio("Escalas máximas", [0, 1, 2], index=2, horizontal=True, key="alerta_escalas",
+        a_escalas = c3.radio("Escalas máximas", [0, 1, 2], index=2, horizontal=True, key="alerta_escalas",
                              format_func=lambda n: "Directo" if n == 0 else str(n))
-        st.caption(f"Ruta: **{nombre_aeropuerto(origen)} → {nombre_aeropuerto(destino)}** "
-                   "(cámbiala en la barra izquierda y presiona Buscar). Cada revisión usa "
-                   f"{'1 consulta' if a_solo_ida else '2 consultas'} por fuente.")
-        if st.form_submit_button("🔔 Crear alerta", type="primary"):
+
+        borrador = {"fecha_vuelta": None if a_solo_ida else a_vuelta, "flex_dias": a_flex, "cada_dias": a_cada}
+        uso_nueva = al.consultas_al_mes(borrador)
+        uso_actual = sum(al.consultas_al_mes(a) for a in al.leer_alertas())
+        texto_uso = (f"Esta alerta usa **{al.consultas_por_revision(borrador)} consultas por revisión**, "
+                     f"unas **{uso_nueva} al mes** por fuente. Con tus otras alertas sumarías "
+                     f"**{uso_actual + uso_nueva} de ~100** búsquedas gratis de SerpApi.")
+        (st.warning if uso_actual + uso_nueva > 80 else st.caption)(
+            texto_uso + (" Te quedaría poco para buscar: prueba revisar cada más días o con menos días "
+                         "flexibles." if uso_actual + uso_nueva > 80 else ""))
+
+        if st.button("🔔 Crear alerta", type="primary"):
             if not a_solo_ida and a_vuelta <= a_ida:
                 st.error("La vuelta tiene que ser posterior a la ida.")
             else:
                 nueva = al.crear_alerta(origen, destino, a_ida, None if a_solo_ida else a_vuelta,
-                                        a_objetivo or None, a_escalas)
+                                        a_objetivo or None, a_escalas, flex_dias=a_flex, cada_dias=a_cada)
                 with st.spinner("Revisando el precio de hoy…"):
-                    al.revisar_alertas(notificar=False, solo_ids=[nueva["id"]])
-                st.success("Alerta creada. Ya quedó guardado el precio de hoy.")
+                    al.revisar_alertas(notificar=False, solo_ids=[nueva["id"]], forzar=True)
+                st.session_state["avisos_alertas"] = ["Alerta creada. Ya quedó guardado el precio de hoy."]
+                st.rerun()
 
     lista = al.leer_alertas()
     historial = al.leer_historial()
@@ -420,7 +438,7 @@ with tab_alertas:
     for aviso in st.session_state.pop("avisos_alertas", []):
         # "$" se escapa para que Streamlit no lo lea como fórmula matemática
         texto = aviso.replace("$", "\\$").replace("\n", "  \n")
-        (st.success if aviso.startswith("✈️") else st.info)(texto)
+        (st.success if aviso.startswith(("✈️", "Alerta creada")) else st.info)(texto)
     if not lista:
         st.info("Todavía no tienes alertas.")
     else:
@@ -430,6 +448,9 @@ with tab_alertas:
                 c1, c2 = st.columns([6, 1])
                 objetivo = (f"Objetivo: {usd(alerta['precio_objetivo'])}" if alerta.get("precio_objetivo")
                             else "Avisa con cualquier bajada")
+                cada = alerta.get("cada_dias", 1)
+                objetivo += (" · revisa " + ("todos los días" if cada == 1 else f"cada {cada} días")
+                             + f" · ~{al.consultas_al_mes(alerta)} consultas/mes")
                 c1.markdown(f"**{al.describir(alerta)}**  \n{objetivo}".replace("$", "\\$"))
                 if c2.button("🗑️ Borrar", key=f"borrar_{alerta['id']}"):
                     al.borrar_alerta(alerta["id"])
@@ -443,6 +464,7 @@ with tab_alertas:
                               delta=f"{ultimo - primero:+,.0f} vs. el inicio" if ultimo != primero else None,
                               delta_color="inverse")
                     m2.metric("Mínimo visto", usd(precios["precio_total_usd"].min()))
+                    st.caption("Mejor opción en la última revisión: " + str(precios.iloc[-1]["detalle"]))
                     m3.metric("Revisiones", len(precios))
 
         if not historial.empty:
@@ -465,7 +487,7 @@ with tab_alertas:
 
         if st.button("🔄 Revisar todas ahora"):
             with st.spinner("Revisando precios…"):
-                st.session_state["avisos_alertas"] = al.revisar_alertas(notificar=True) or \
+                st.session_state["avisos_alertas"] = al.revisar_alertas(notificar=True, forzar=True) or \
                     ["Ningún precio bajó por ahora."]
             st.rerun()
 

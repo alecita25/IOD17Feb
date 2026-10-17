@@ -100,3 +100,36 @@ def test_bat_usa_el_python_actual():
     contenido = al.crear_bat().read_bytes().decode("utf-8")
     assert sys.executable in contenido and "alertas.py" in contenido
     assert contenido.count("\r\n") == 3 and "\r\r" not in contenido
+
+
+def test_dias_flexibles_encuentra_precio_igual_o_mas_barato():
+    exacta = al.crear_alerta("BNE", "LIM", "2026-12-10", "2026-12-24")
+    flexible = al.crear_alerta("BNE", "LIM", "2026-12-10", "2026-12-24", flex_dias=2)
+    p_exacta = al.precio_actual(exacta, hoy=HOY)["precio_total_usd"]
+    p_flex = al.precio_actual(flexible, hoy=HOY)
+    assert p_flex["precio_total_usd"] <= p_exacta
+    assert "Ida " in p_flex["detalle"] and "Vuelta " in p_flex["detalle"]
+    assert al.describir(flexible).endswith("(±2 días)")
+
+
+def test_consultas_al_mes():
+    assert al.consultas_al_mes(al.crear_alerta("BNE", "LIM", "2026-12-10", "2026-12-24")) == 60
+    assert al.consultas_al_mes(al.crear_alerta("BNE", "LIM", "2026-12-10", flex_dias=1, cada_dias=3)) == 30
+    assert al.consultas_por_revision(al.crear_alerta("BNE", "LIM", "2026-12-10", "2026-12-24", flex_dias=2)) == 10
+
+
+def test_respeta_frecuencia_salvo_que_se_fuerce():
+    al.crear_alerta("BNE", "LIM", "2026-12-10", cada_dias=3)
+    al.revisar_alertas(notificar=False, hoy=HOY)
+    al.revisar_alertas(notificar=False, hoy="2026-10-18")  # 1 día después: no toca
+    assert len(al.leer_historial()) == 1
+    al.revisar_alertas(notificar=False, hoy="2026-10-18", forzar=True)
+    al.revisar_alertas(notificar=False, hoy="2026-10-21")  # 3 días después del 18: sí toca
+    assert len(al.leer_historial()) == 3
+
+
+def test_no_consulta_fechas_pasadas():
+    bv.configurar_fuentes([])
+    with mock.patch.object(bv, "obtener_vuelos", return_value=[]) as obtener:
+        bv.buscar_vuelos("BNE", "LIM", "2026-10-15", "2026-10-19", hoy=HOY)
+    assert [c.args[2].isoformat() for c in obtener.call_args_list] == ["2026-10-17", "2026-10-18", "2026-10-19"]

@@ -19,7 +19,7 @@ import smtplib
 import sys
 import tomllib
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -50,7 +50,9 @@ def guardar_alertas(alertas):
     ARCHIVO_ALERTAS.write_text(json.dumps(alertas, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def crear_alerta(origen, destino, fecha_ida, fecha_vuelta=None, precio_objetivo=None, max_escalas=2):
+def crear_alerta(origen, destino, fecha_ida, fecha_vuelta=None, precio_objetivo=None, max_escalas=2,
+                 flex_dias=0, cada_dias=1):
+    """flex_dias: también vigila N días antes y después de cada fecha. cada_dias: cada cuántos días revisa."""
     alerta = {
         "id": uuid.uuid4().hex[:8],
         "origen": origen,
@@ -59,6 +61,8 @@ def crear_alerta(origen, destino, fecha_ida, fecha_vuelta=None, precio_objetivo=
         "fecha_vuelta": bv._a_fecha(fecha_vuelta).isoformat() if fecha_vuelta else None,
         "precio_objetivo": float(precio_objetivo) if precio_objetivo else None,
         "max_escalas": max_escalas,
+        "flex_dias": int(flex_dias),
+        "cada_dias": int(cada_dias),
         "creada": date.today().isoformat(),
         "activa": True,
     }
@@ -80,7 +84,19 @@ def describir(alerta):
     texto = f"{alerta['origen']} → {alerta['destino']} · ida {ida:%d/%m/%Y}"
     if alerta["fecha_vuelta"]:
         texto += f" · vuelta {date.fromisoformat(alerta['fecha_vuelta']):%d/%m/%Y}"
+    if alerta.get("flex_dias"):
+        texto += f" (±{alerta['flex_dias']} días)"
     return texto
+
+
+def consultas_por_revision(alerta):
+    """Cuántas consultas a la API usa cada revisión (por fuente)."""
+    dias = 2 * alerta.get("flex_dias", 0) + 1
+    return dias * (2 if alerta.get("fecha_vuelta") else 1)
+
+
+def consultas_al_mes(alerta):
+    return round(consultas_por_revision(alerta) * 30 / alerta.get("cada_dias", 1))
 
 
 def leer_historial():
@@ -110,31 +126,52 @@ def configurar_fuentes_desde(secretos):
 
 # ---------- Revisar precios ----------
 
-def precio_actual(alerta):
-    """El precio más barato hoy para la alerta (ida, o ida + vuelta). None si no hay vuelos."""
+def precio_actual(alerta, hoy=None):
+    """El precio más barato hoy para la alerta, considerando sus días flexibles.
+
+    Devuelve {"precio_total_usd", "detalle", "fuente"} o None si no hay vuelos.
+    """
+    hoy = bv._a_fecha(hoy) if hoy else date.today()
     filtros = {"max_escalas": alerta.get("max_escalas", 2)}
-    ida = bv.buscar_vuelos(alerta["origen"], alerta["destino"], alerta["fecha_ida"], **filtros)
-    if ida.empty:
+    flex = timedelta(days=alerta.get("flex_dias", 0))
+
+    def mas_baratos_por_dia(a, b, centro):
+        centro = date.fromisoformat(centro)
+        desde, hasta = max(centro - flex, hoy), centro + flex
+        if hasta < desde:
+            return pd.DataFrame()
+        return bv.mas_barato_por_dia(bv.buscar_vuelos(a, b, desde, hasta, hoy=hoy, **filtros))
+
+    def tramo(v, nombre):
+        return f"{nombre} {v['fecha']:%d/%m}: {v['aerolinea']} ({v['via']})"
+
+    idas = mas_baratos_por_dia(alerta["origen"], alerta["destino"], alerta["fecha_ida"])
+    if idas.empty:
         return None
-    mejor_ida = ida.iloc[0]
-    total, detalle, fuente = mejor_ida["precio_usd"], f"Ida: {mejor_ida['aerolinea']} ({mejor_ida['via']})", \
-        mejor_ida["fuente"]
+    if not alerta["fecha_vuelta"]:
+        v = idas.loc[idas["precio_usd"].idxmin()]
+        return {"precio_total_usd": int(v["precio_usd"]), "detalle": tramo(v, "Ida"), "fuente": v["fuente"]}
 
-    if alerta["fecha_vuelta"]:
-        vuelta = bv.buscar_vuelos(alerta["destino"], alerta["origen"], alerta["fecha_vuelta"], **filtros)
-        if vuelta.empty:
-            return None
-        mejor_vuelta = vuelta.iloc[0]
-        total += mejor_vuelta["precio_usd"]
-        detalle += f" · Vuelta: {mejor_vuelta['aerolinea']} ({mejor_vuelta['via']})"
-        if mejor_vuelta["fuente"] != fuente:
-            fuente += f" / {mejor_vuelta['fuente']}"
-    return {"precio_total_usd": int(total), "detalle": detalle, "fuente": fuente}
+    vueltas = mas_baratos_por_dia(alerta["destino"], alerta["origen"], alerta["fecha_vuelta"])
+    if vueltas.empty:
+        return None
+    combos = idas.merge(vueltas, how="cross", suffixes=("_i", "_v"))
+    combos = combos[combos["fecha_v"] > combos["fecha_i"]]
+    if combos.empty:
+        return None
+    combos["total"] = combos["precio_usd_i"] + combos["precio_usd_v"]
+    m = combos.loc[combos["total"].idxmin()]
+    ida = {k[:-2]: m[k] for k in m.index if k.endswith("_i")}
+    vuelta = {k[:-2]: m[k] for k in m.index if k.endswith("_v")}
+    fuente = ida["fuente"] if ida["fuente"] == vuelta["fuente"] else f"{ida['fuente']} / {vuelta['fuente']}"
+    return {"precio_total_usd": int(m["total"]),
+            "detalle": f"{tramo(ida, 'Ida')} · {tramo(vuelta, 'Vuelta')}", "fuente": fuente}
 
 
-def revisar_alertas(notificar=True, hoy=None, solo_ids=None):
+def revisar_alertas(notificar=True, hoy=None, solo_ids=None, forzar=False):
     """Revisa las alertas activas (o solo las de solo_ids), guarda el historial y avisa si bajó algún precio.
 
+    Cada alerta se revisa cada "cada_dias" días; forzar=True la revisa igual (botón "Revisar ahora").
     Devuelve la lista de mensajes de aviso generados.
     """
     hoy = bv._a_fecha(hoy) if hoy else date.today()
@@ -142,11 +179,17 @@ def revisar_alertas(notificar=True, hoy=None, solo_ids=None):
     nuevas_filas, avisos = [], []
 
     for alerta in leer_alertas():
-        if not alerta.get("activa", True) or date.fromisoformat(alerta["fecha_ida"]) < hoy:
+        ultimo_dia_ida = date.fromisoformat(alerta["fecha_ida"]) + timedelta(days=alerta.get("flex_dias", 0))
+        if not alerta.get("activa", True) or ultimo_dia_ida < hoy:
             continue
         if solo_ids is not None and alerta["id"] not in solo_ids:
             continue
-        actual = precio_actual(alerta)
+        revisiones = historial[historial["alerta_id"] == alerta["id"]]
+        if not forzar and not revisiones.empty:
+            ultima = pd.to_datetime(revisiones["revisado"]).max().date()
+            if (hoy - ultima).days < alerta.get("cada_dias", 1):
+                continue
+        actual = precio_actual(alerta, hoy=hoy)
         if actual is None:
             continue
 
