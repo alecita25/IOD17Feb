@@ -52,11 +52,13 @@ _Mañana: rutina de arriba_
 14:00         Salgo → **tarde libre larga**
 
 ## Sábado
-09:15–~10:15  Barre (duración por confirmar)
+Despierto temprano (más tarde si salí el viernes en la noche)
+09:15–10:00  Barre
+10:00        → **resto del día libre**
 
 ## Domingo
+Pilates sin horario fijo — opciones: **07:00**, **08:00** o **16:00**
+(Decidir el sábado en la noche cuál tomar; el resto del día es libre.)
 
 ## Por confirmar
 - Miércoles: ¿a qué hora llegas a casa después de correr?
-- Sábado: ¿cuánto dura barre y a qué hora te despiertas?
-- Domingo: ¿hay algo fijo?
