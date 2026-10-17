@@ -8,6 +8,7 @@ con fechas flexibles y rutas alternativas. Sin claves funciona con **datos de de
 - `buscador_vuelos.py`: la lógica de búsqueda (fechas flexibles, rutas alternativas, explorar destinos).
 - `Buscador de vuelos baratos.ipynb`: versión notebook (usa datos de demo).
 - `alertas.py`: alertas de precio (revisión diaria y avisos).
+- `momento_compra.py`: recomendación de si conviene comprar ahora o esperar.
 - `tests/`: pruebas (`python -m pytest tests`).
 
 ## Cómo abrir la app (Windows, PowerShell)
@@ -58,6 +59,20 @@ y pégalas ahí. Ese archivo está en `.gitignore`, así que **nunca se sube a G
   (low cost incluidas) y muestra cuánto ahorra cada una frente a la ruta más directa.
 - **🌎 Explorar destinos**: el vuelo más barato a cada destino desde tu origen.
 - **🔔 Alertas**: guarda vuelos y te avisa cuando bajan de precio (ver abajo).
+
+## ¿Conviene comprar ahora?
+
+Al comienzo de **📅 Mejores fechas**, la app evalúa la combinación más barata con tres señales y te dice si
+conviene **comprar ya**, si es un **buen momento** o si es mejor **esperar** (con una alerta):
+
+1. **Cuánto falta para el vuelo.** En vuelos internacionales el mejor precio suele aparecer entre 2 y 6 meses antes
+   (entre 4 y 10 meses en temporada alta: diciembre, enero y julio). A menos de 3 semanas casi siempre sube.
+2. **Si el precio de hoy está bajo, normal o alto** frente al rango típico de la ruta. Con Google Flights (SerpApi)
+   se usa el indicador de Google (*price insights*); con datos de demo se estima.
+3. **El historial de precios** de Google Flights para tu ida (gráfico), cuando Google lo entrega.
+
+Te sugiere un **precio objetivo** y con un botón crea una alerta que te avisa si baja a ese precio.
+Es una guía basada en patrones habituales: nadie puede asegurar cómo se moverá el precio.
 
 ## Monedas
 

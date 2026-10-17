@@ -20,6 +20,7 @@ import streamlit as st
 import alertas as al
 import buscador_vuelos as bv
 import fuentes
+import momento_compra as mc
 
 AZUL, NARANJA = "#2a78d6", "#eb6834"
 COLORES_SERIES = [AZUL, NARANJA, "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
@@ -157,6 +158,9 @@ if fecha_vuelta <= fecha_ida:
     st.stop()
 
 st.title(f"{bv.AEROPUERTOS[origen][0]} → {bv.AEROPUERTOS[destino][0]}")
+st.markdown(f"**Ida:** {bv.DIAS_COMPLETOS[fecha_ida.weekday()]} {fecha_ida:%d/%m/%Y} · "
+            f"**Vuelta:** {bv.DIAS_COMPLETOS[fecha_vuelta.weekday()]} {fecha_vuelta:%d/%m/%Y} · "
+            f"{(fecha_vuelta - fecha_ida).days} noches" + (f" · ±{flex} días flexibles" if flex else ""))
 if modo_real:
     st.caption(f"Precios reales de: **{', '.join(bv.fuentes_activas())}**, convertidos a dólares. "
                "Los precios cambian a cada rato: confírmalos siempre en la página antes de comprar.")
@@ -232,10 +236,56 @@ with tab_fechas:
         st.warning("No hay vuelos con esos filtros. Prueba con más escalas o sin precio máximo.")
     else:
         mejor = combos.iloc[0]
-        c1, c2, c3 = st.columns(3)
+
+        # ---- ¿Conviene comprar ahora? (para la combinación más barata) ----
+        v_ida, _ = cargar_vuelos(origen, destino, mejor["fecha_ida"], mejor["fecha_ida"], filtros_key, fuentes_key)
+        v_vuelta, _ = cargar_vuelos(destino, origen, mejor["fecha_vuelta"], mejor["fecha_vuelta"],
+                                    filtros_key, fuentes_key)
+        consejo = mc.evaluar(origen, destino, mejor["fecha_ida"], v_ida, mejor["fecha_vuelta"], v_vuelta,
+                             demo=not modo_real)
+        if consejo["estado"] != "sin_vuelos":
+            with st.container(border=True):
+                st.subheader("🛒 ¿Conviene comprar ahora?")
+                caja, icono = {"comprar": (st.success, "🟢"), "buen_momento": (st.info, "🔵"),
+                               "esperar": (st.warning, "🟡")}[consejo["estado"]]
+                caja(f"{icono} **{consejo['titulo']}**")
+                for razon in consejo["razones"]:
+                    st.markdown("- " + razon)
+                k1, k2, k3, k4 = st.columns(4)
+                k1.metric("Faltan", f"{consejo['dias_faltan']} días",
+                          help=f"Ventana ideal: {consejo['ventana'][0]}–{consejo['ventana'][1]} días antes")
+                k2.metric("Precio de hoy", (consejo["nivel"] or "sin dato").capitalize())
+                if consejo["rango_usd"]:
+                    r_min, r_max = consejo["rango_usd"]
+                    k3.metric(f"Rango típico ({MONEDA})",
+                              f"{r_min * FACTOR:,.0f}–{r_max * FACTOR:,.0f}".replace(",", "."),
+                              help=f"{precio_otro(r_min)}–{precio_otro(r_max)}")
+                k4.metric("Precio objetivo sugerido", precio_corto(consejo["objetivo_usd"]),
+                          help="Para una alerta: la parte baja del rango típico.")
+                if st.button("🔔 Avisarme si baja a ese precio", key="alerta_sugerida"):
+                    nueva = al.crear_alerta(origen, destino, mejor["fecha_ida"], mejor["fecha_vuelta"],
+                                            consejo["objetivo_usd"], filtros.get("max_escalas", 2))
+                    al.revisar_alertas(notificar=False, solo_ids=[nueva["id"]], forzar=True)
+                    st.success("Alerta creada: la ves en la pestaña 🔔 Alertas. Recuerda activar la revisión diaria.")
+
+                hist = mc.historial_google(v_ida)
+                if len(hist) > 1:
+                    hist = hist.assign(precio_m=a_moneda(hist["precio_usd"]))
+                    linea = alt.Chart(hist).mark_line(point=True, strokeWidth=2, color=AZUL).encode(
+                        x=alt.X("dia:T", title=None),
+                        y=alt.Y("precio_m:Q", title=MONEDA, scale=alt.Scale(zero=False)),
+                        tooltip=[alt.Tooltip("dia:T", title="Día", format="%d/%m/%Y"),
+                                 alt.Tooltip("precio_m:Q", title=MONEDA, format=",.0f")])
+                    st.markdown(f"**Cómo ha cambiado el precio de la ida ({bv.fecha_txt(mejor['fecha_ida'])}) "
+                                "según Google Flights**")
+                    st.altair_chart(linea.properties(height=200), width="stretch")
+                st.caption("Es una guía basada en patrones habituales de precios; nadie puede asegurar cómo se "
+                           "moverá el precio. " + ("Con datos de demo el rango es estimado." if not modo_real else ""))
+
+        c1, c2, c3 = st.columns([1, 1.4, 1])
         c1.metric("Ida y vuelta más barata", precio_corto(mejor["precio_total_usd"]),
                   help=precio_otro(mejor["precio_total_usd"]))
-        c2.metric("Fechas", f"{mejor['fecha_ida']:%d/%m} → {mejor['fecha_vuelta']:%d/%m}",
+        c2.metric("Fechas", f"{bv.fecha_txt(mejor['fecha_ida'])} → {bv.fecha_txt(mejor['fecha_vuelta'])}",
                   help=f"{mejor['noches']} noches")
         if "ahorro_vs_tus_fechas_usd" in combos:
             c3.metric("Ahorro vs. tus fechas", precio_corto(mejor["ahorro_vs_tus_fechas_usd"]),
@@ -262,11 +312,11 @@ with tab_fechas:
         st.dataframe(tabla, hide_index=True, width="stretch")
 
         st.subheader("Precio total según fechas de ida y vuelta")
-        orden_ida = [f"{f:%d/%m}" for f in sorted(combos["fecha_ida"].unique())]
-        orden_vuelta = [f"{f:%d/%m}" for f in sorted(combos["fecha_vuelta"].unique())]
+        orden_ida = [bv.fecha_txt(f) for f in sorted(combos["fecha_ida"].unique())]
+        orden_vuelta = [bv.fecha_txt(f) for f in sorted(combos["fecha_vuelta"].unique())]
         mapa = combos.assign(
-            ida=combos["fecha_ida"].map(lambda f: f"{f:%d/%m}"),
-            vuelta=combos["fecha_vuelta"].map(lambda f: f"{f:%d/%m}"),
+            ida=combos["fecha_ida"].map(bv.fecha_txt),
+            vuelta=combos["fecha_vuelta"].map(bv.fecha_txt),
             precio_m=a_moneda(combos["precio_total_usd"]),
         )
         eje_x = alt.X("ida:O", title="Ida", sort=orden_ida)
@@ -347,6 +397,7 @@ with tab_rutas:
         "directo si existe o, si no, el pasaje único más barato con menos escalas.")
     c1, c2, c3 = st.columns(3)
     dia_ruta = c1.date_input("Fecha del tramo de ida", fecha_ida, key="fecha_ruta", min_value=date.today())
+    c1.caption(f"{bv.DIAS_COMPLETOS[dia_ruta.weekday()].capitalize()} {dia_ruta:%d/%m/%Y}")
     escalas_ruta = c2.radio("Escalas", [1, 2], index=0 if modo_real else 1, horizontal=True)
     max_hubs = c3.slider("Ciudades de conexión a probar", 1, 12, 4 if modo_real else 12,
                          help="Se prueban primero las que quedan más de camino.")
@@ -444,9 +495,12 @@ with tab_alertas:
                    "(cámbiala en la barra izquierda y presiona Buscar).")
         c1, c2, c3 = st.columns(3)
         a_ida = c1.date_input("Ida", fecha_ida, min_value=date.today(), key="alerta_ida")
+        c1.caption(bv.DIAS_COMPLETOS[a_ida.weekday()].capitalize())
         a_solo_ida = c1.checkbox("Solo ida", value=False, key="alerta_solo_ida")
         a_vuelta = c1.date_input("Vuelta", fecha_vuelta, min_value=date.today(), key="alerta_vuelta",
                                  disabled=a_solo_ida)
+        if not a_solo_ida:
+            c1.caption(bv.DIAS_COMPLETOS[a_vuelta.weekday()].capitalize())
         a_flex = c2.select_slider("Días flexibles (±)", options=[0, 1, 2, 3], value=0, key="alerta_flex",
                                   help="También vigila esa cantidad de días antes y después de cada fecha.")
         a_cada = c2.select_slider("Revisar", options=[1, 2, 3, 7], value=1, key="alerta_cada",

@@ -28,7 +28,7 @@ def archivos_temporales(tmp_path, monkeypatch):
 def test_crear_y_borrar_alerta():
     a = al.crear_alerta("BNE", "LIM", "2026-12-10", "2026-12-24", 1500)
     assert al.leer_alertas() == [a]
-    assert al.describir(a) == "BNE → LIM · ida 10/12/2026 · vuelta 24/12/2026"
+    assert al.describir(a) == "BNE → LIM · ida jue 10/12/2026 · vuelta jue 24/12/2026"
     al.borrar_alerta(a["id"])
     assert al.leer_alertas() == []
 

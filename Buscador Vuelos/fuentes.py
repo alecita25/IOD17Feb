@@ -219,6 +219,16 @@ def _vuelo(fecha, origen, destino, aerolinea, salida, llegada, duracion_min, via
 
 
 def parsear_serpapi(datos, origen, destino, fecha):
+    # "price_insights": lo que Google Flights opina del precio de hoy para esta ruta y fecha
+    # (bajo / normal / alto, rango típico e historial). No siempre viene.
+    insights = datos.get("price_insights") or {}
+    rango = insights.get("typical_price_range") or [None, None]
+    extra = {
+        "nivel_precio": {"low": "bajo", "typical": "normal", "high": "alto"}.get(insights.get("price_level")),
+        "rango_tipico_min": rango[0] if len(rango) == 2 else None,
+        "rango_tipico_max": rango[1] if len(rango) == 2 else None,
+        "historial_google": json.dumps(insights["price_history"]) if insights.get("price_history") else None,
+    }
     vuelos = []
     for opcion in datos.get("best_flights", []) + datos.get("other_flights", []):
         tramos = opcion.get("flights") or []
@@ -229,8 +239,8 @@ def parsear_serpapi(datos, origen, destino, fecha):
         salida = _hora(tramos[0]["departure_airport"]["time"])
         llegada = _hora(tramos[-1]["arrival_airport"]["time"])
         duracion = opcion.get("total_duration") or sum(t.get("duration", 0) for t in tramos)
-        vuelos.append(_vuelo(fecha, origen, destino, " + ".join(aerolineas), salida, llegada,
-                             duracion, via, opcion["price"], FuenteSerpApi.nombre))
+        vuelos.append(dict(_vuelo(fecha, origen, destino, " + ".join(aerolineas), salida, llegada,
+                                  duracion, via, opcion["price"], FuenteSerpApi.nombre), **extra))
     return vuelos
 
 

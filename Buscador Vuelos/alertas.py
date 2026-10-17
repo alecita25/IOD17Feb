@@ -86,10 +86,9 @@ def en_dos_monedas(usd):
 
 
 def describir(alerta):
-    ida = date.fromisoformat(alerta["fecha_ida"])
-    texto = f"{alerta['origen']} → {alerta['destino']} · ida {ida:%d/%m/%Y}"
+    texto = f"{alerta['origen']} → {alerta['destino']} · ida {bv.fecha_txt(alerta['fecha_ida'], anio=True)}"
     if alerta["fecha_vuelta"]:
-        texto += f" · vuelta {date.fromisoformat(alerta['fecha_vuelta']):%d/%m/%Y}"
+        texto += f" · vuelta {bv.fecha_txt(alerta['fecha_vuelta'], anio=True)}"
     if alerta.get("flex_dias"):
         texto += f" (±{alerta['flex_dias']} días)"
     return texto
@@ -157,7 +156,7 @@ def precio_actual(alerta, hoy=None):
         return bv.mas_barato_por_dia(bv.buscar_vuelos(a, b, desde, hasta, hoy=hoy, **filtros))
 
     def tramo(v, nombre):
-        return f"{nombre} {v['fecha']:%d/%m}: {v['aerolinea']} ({v['via']})"
+        return f"{nombre} {bv.fecha_txt(v['fecha'])}: {v['aerolinea']} ({v['via']})"
 
     idas = mas_baratos_por_dia(alerta["origen"], alerta["destino"], alerta["fecha_ida"])
     if idas.empty:

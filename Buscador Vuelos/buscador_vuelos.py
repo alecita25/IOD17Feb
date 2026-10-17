@@ -87,6 +87,13 @@ FACTOR_DIA_SEMANA = [1.00, 0.88, 0.86, 0.98, 1.15, 1.08, 1.12]
 FACTOR_ESCALAS = {0: 1.00, 1: 0.82, 2: 0.70}
 
 DIAS_SEMANA = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]
+DIAS_COMPLETOS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+
+def fecha_txt(fecha, anio=False):
+    """'mié 16/12' (o 'mié 16/12/2026' con anio=True)."""
+    fecha = _a_fecha(fecha)
+    return f"{DIAS_SEMANA[fecha.weekday()]} {fecha:%d/%m/%Y}" if anio else f"{DIAS_SEMANA[fecha.weekday()]} {fecha:%d/%m}"
 
 
 def _a_fecha(valor):
@@ -480,7 +487,7 @@ def rutas_alternativas(origen, destino, fecha, escala_min_h=2, escala_max_h=12,
             "escala_mas_larga_h": round(max(esperas), 1),
             "precio_usd": sum(v["precio_usd"] for v in it),
             "detalle": " | ".join(f"{v['origen']}-{v['destino']} {v['aerolinea']} "
-                                  f"{v['salida']:%d/%m %H:%M} US${v['precio_usd']} ({v['fuente']})"
+                                  f"{fecha_txt(v['salida'])} {v['salida']:%H:%M} US${v['precio_usd']} ({v['fuente']})"
                                   for v in it),
         })
 
