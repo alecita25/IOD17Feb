@@ -163,3 +163,15 @@ def test_clave_rechazada_no_se_reintenta(cache_temporal):
         bv.buscar_vuelos("BNE", "LIM", FECHA, date(2026, 12, 12))
     assert get.call_count == 1 and serp.bloqueada
     assert "Google Flights" in bv.ERRORES_FUENTES
+
+
+def test_tipo_cambio_del_dia_y_respaldo(cache_temporal):
+    respuesta = _respuesta({"rates": {"AUD": 1.52}})
+    with mock.patch("fuentes.requests.get", return_value=respuesta) as get:
+        assert fuentes.tipo_cambio_usd_aud()[0] == 1.52
+        assert fuentes.tipo_cambio_usd_aud()[0] == 1.52  # segunda vez sale de la caché
+    assert get.call_count == 1
+    (cache_temporal / "tipo_cambio.json").unlink()
+    with mock.patch("fuentes.requests.get", side_effect=OSError("sin internet")):
+        tasa, texto = fuentes.tipo_cambio_usd_aud()
+    assert tasa == pytest.approx(1 / fuentes.TASAS_A_USD["AUD"]) and "aproximado" in texto

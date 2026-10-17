@@ -59,6 +59,13 @@ y pégalas ahí. Ese archivo está en `.gitignore`, así que **nunca se sube a G
 - **🌎 Explorar destinos**: el vuelo más barato a cada destino desde tu origen.
 - **🔔 Alertas**: guarda vuelos y te avisa cuando bajan de precio (ver abajo).
 
+## Monedas
+
+Los precios se muestran en **A$ y US$**. En la barra izquierda eliges la **moneda principal** (la que va primero
+y en los gráficos). La app usa el tipo de cambio del día (open.er-api.com, gratis y sin clave, actualizado cada
+12 horas); si no hay conexión, usa uno aproximado (`TASAS_A_USD` en `fuentes.py`). Los avisos de las alertas
+también muestran ambas monedas.
+
 ## Alertas de precio
 
 1. En la pestaña **🔔 Alertas**, elige las fechas, cuántos **días flexibles** vigilar (± días alrededor de cada

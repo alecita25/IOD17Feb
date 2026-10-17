@@ -36,6 +36,35 @@ def usd(valor):
     return f"US$ {valor:,.0f}".replace(",", ".")
 
 
+def aud(valor_usd):
+    return f"A$ {valor_usd * TASA_AUD:,.0f}".replace(",", ".")
+
+
+def precio(valor_usd):
+    """Precio en la moneda principal, con la otra entre paréntesis."""
+    if MONEDA == "A$":
+        return f"{aud(valor_usd)} ({usd(valor_usd)})"
+    return f"{usd(valor_usd)} ({aud(valor_usd)})"
+
+
+def precio_corto(valor_usd):
+    return aud(valor_usd) if MONEDA == "A$" else usd(valor_usd)
+
+
+def precio_otro(valor_usd):
+    return usd(valor_usd) if MONEDA == "A$" else aud(valor_usd)
+
+
+def a_moneda(serie_usd):
+    """Convierte una columna en US$ a la moneda principal (para gráficos)."""
+    return (serie_usd * FACTOR).round(0)
+
+
+@st.cache_data(ttl=3600 * 6, show_spinner=False)
+def cargar_tipo_cambio():
+    return fuentes.tipo_cambio_usd_aud()
+
+
 def clave_guardada(nombre):
     """Clave desde .streamlit/secrets.toml o variable de entorno (si existe)."""
     try:
@@ -54,6 +83,12 @@ with st.sidebar:
                                      help="Cuenta en duffel.com → Developers → Access tokens")
         clave_kiwi = st.text_input("Kiwi.com (Tequila)", clave_guardada("KIWI_API_KEY"), type="password",
                                    help="tequila.kiwi.com → My solutions → API key")
+
+    MONEDA = st.radio("💱 Moneda principal", ["A$", "US$"], horizontal=True,
+                      help="Los precios se muestran en ambas monedas; esta es la que va primero y en los gráficos.")
+    TASA_AUD, origen_tasa = cargar_tipo_cambio()
+    st.caption(f"1 US\\$ = {TASA_AUD:.2f} A\\$ ({origen_tasa})".replace(".", ",", 1))
+FACTOR = TASA_AUD if MONEDA == "A$" else 1.0
 
 claves = (clave_serp.strip(), clave_duffel.strip(), clave_kiwi.strip())
 if "fuentes" not in st.session_state or st.session_state["claves"] != claves:
@@ -82,7 +117,7 @@ with st.sidebar:
         st.subheader("Filtros")
         max_escalas = st.radio("Escalas máximas", [0, 1, 2], index=2, horizontal=True,
                                format_func=lambda n: "Directo" if n == 0 else str(n))
-        precio_max = st.number_input("Precio máximo por tramo (US$, 0 = sin límite)",
+        precio_max = st.number_input(f"Precio máximo por tramo ({MONEDA}, 0 = sin límite)",
                                      min_value=0, value=0, step=50)
 
         st.subheader("Rutas alternativas")
@@ -102,7 +137,7 @@ with st.sidebar:
 if buscar or ("busqueda" not in st.session_state and not modo_real):
     st.session_state["busqueda"] = dict(
         origen=origen, destino=destino, fecha_ida=fecha_ida, fecha_vuelta=fecha_vuelta, flex=flex,
-        filtros=(("max_escalas", max_escalas), ("precio_max", precio_max or None)),
+        filtros=(("max_escalas", max_escalas), ("precio_max", round(precio_max / FACTOR) if precio_max else None)),
         escala_min=escala_min, escala_max=escala_max)
 
 if "busqueda" not in st.session_state:
@@ -198,11 +233,13 @@ with tab_fechas:
     else:
         mejor = combos.iloc[0]
         c1, c2, c3 = st.columns(3)
-        c1.metric("Ida y vuelta más barata", usd(mejor["precio_total_usd"]))
+        c1.metric("Ida y vuelta más barata", precio_corto(mejor["precio_total_usd"]),
+                  help=precio_otro(mejor["precio_total_usd"]))
         c2.metric("Fechas", f"{mejor['fecha_ida']:%d/%m} → {mejor['fecha_vuelta']:%d/%m}",
                   help=f"{mejor['noches']} noches")
         if "ahorro_vs_tus_fechas_usd" in combos:
-            c3.metric("Ahorro vs. tus fechas", usd(mejor["ahorro_vs_tus_fechas_usd"]))
+            c3.metric("Ahorro vs. tus fechas", precio_corto(mejor["ahorro_vs_tus_fechas_usd"]),
+                      help=precio_otro(mejor["ahorro_vs_tus_fechas_usd"]))
         else:
             c3.metric("Ahorro vs. tus fechas", "—", help="No hay vuelos en tus fechas exactas.")
 
@@ -214,10 +251,12 @@ with tab_fechas:
             "Vuelta": top["fecha_vuelta"].map(lambda f: f"{bv.DIAS_SEMANA[f.weekday()]} {f:%d/%m/%Y}"),
             "Aerolínea vuelta": top["aerolinea_vuelta"] + " (" + top["via_vuelta"] + ")",
             "Noches": top["noches"],
+            "Total (A$)": (top["precio_total_usd"] * TASA_AUD).round(0),
             "Total (US$)": top["precio_total_usd"],
         })
         if "ahorro_vs_tus_fechas_usd" in top:
-            tabla["Ahorro vs. tus fechas (US$)"] = top["ahorro_vs_tus_fechas_usd"]
+            tabla["Ahorro (A$)"] = (top["ahorro_vs_tus_fechas_usd"] * TASA_AUD).round(0)
+            tabla["Ahorro (US$)"] = top["ahorro_vs_tus_fechas_usd"]
         if modo_real:
             tabla["Fuente"] = top["fuente_ida"] + " / " + top["fuente_vuelta"]
         st.dataframe(tabla, hide_index=True, width="stretch")
@@ -228,22 +267,23 @@ with tab_fechas:
         mapa = combos.assign(
             ida=combos["fecha_ida"].map(lambda f: f"{f:%d/%m}"),
             vuelta=combos["fecha_vuelta"].map(lambda f: f"{f:%d/%m}"),
+            precio_m=a_moneda(combos["precio_total_usd"]),
         )
         eje_x = alt.X("ida:O", title="Ida", sort=orden_ida)
         eje_y = alt.Y("vuelta:O", title="Vuelta", sort=orden_vuelta)
         calor = alt.Chart(mapa).mark_rect(cornerRadius=3, stroke="white", strokeWidth=2).encode(
             x=eje_x, y=eje_y,
-            color=alt.Color("precio_total_usd:Q", title="US$",
+            color=alt.Color("precio_m:Q", title=MONEDA,
                             scale=alt.Scale(scheme="blues", reverse=True)),
             tooltip=[alt.Tooltip("ida:O", title="Ida"), alt.Tooltip("vuelta:O", title="Vuelta"),
                      alt.Tooltip("noches:Q", title="Noches"),
-                     alt.Tooltip("precio_total_usd:Q", title="Total US$", format=",.0f")],
+                     alt.Tooltip("precio_m:Q", title=f"Total {MONEDA}", format=",.0f")],
         )
-        mediana = float(mapa["precio_total_usd"].median())
+        mediana = float(mapa["precio_m"].median())
         texto = alt.Chart(mapa).mark_text(fontSize=11).encode(
             x=eje_x, y=eje_y,
-            text=alt.Text("precio_total_usd:Q", format=",.0f"),
-            color=alt.condition(alt.datum.precio_total_usd < mediana,
+            text=alt.Text("precio_m:Q", format=",.0f"),
+            color=alt.condition(alt.datum.precio_m < mediana,
                                 alt.value("white"), alt.value("#0b0b0b")),
         )
         st.altair_chart((calor + texto).properties(height=340), width="stretch")
@@ -267,25 +307,27 @@ with tab_vuelos:
         por_dia = por_dia.assign(
             dia_txt=por_dia["fecha"].map(lambda f: f"{bv.DIAS_SEMANA[f.weekday()]} {f:%d/%m}"),
             mejor=por_dia["precio_usd"] == minimo,
+            precio_m=a_moneda(por_dia["precio_usd"]),
         )
         barras = alt.Chart(por_dia).mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
             x=alt.X("dia_txt:N", title=None, sort=list(por_dia["dia_txt"])),
-            y=alt.Y("precio_usd:Q", title="US$ (más barato del día)"),
+            y=alt.Y("precio_m:Q", title=f"{MONEDA} (más barato del día)"),
             color=alt.condition(alt.datum.mejor, alt.value(NARANJA), alt.value(AZUL)),
             tooltip=[alt.Tooltip("dia_txt:N", title="Día"), alt.Tooltip("aerolinea:N", title="Aerolínea"),
                      alt.Tooltip("via:N", title="Escalas"),
-                     alt.Tooltip("precio_usd:Q", title="US$", format=",.0f")],
+                     alt.Tooltip("precio_m:Q", title=MONEDA, format=",.0f")],
         )
         st.altair_chart(barras.properties(height=280), width="stretch")
 
-        columnas = ["fecha", "dia", "aerolinea", "salida", "llegada", "duracion_h", "via", "precio_usd",
-                    "fuente", "precios_por_fuente", "enlace"]
+        vuelos = vuelos.assign(precio_aud=(vuelos["precio_usd"] * TASA_AUD).round(0))
+        columnas = ["fecha", "dia", "aerolinea", "salida", "llegada", "duracion_h", "via", "precio_aud",
+                    "precio_usd", "fuente", "precios_por_fuente", "enlace"]
         columnas = [c for c in columnas if c in vuelos.columns and vuelos[c].notna().any()]
         st.dataframe(
             vuelos[columnas]
             .rename(columns={"fecha": "Fecha", "dia": "Día", "aerolinea": "Aerolínea", "salida": "Salida",
                              "llegada": "Llegada", "duracion_h": "Duración (h)", "via": "Escalas en",
-                             "precio_usd": "Precio (US$)", "fuente": "Fuente",
+                             "precio_aud": "Precio (A$)", "precio_usd": "Precio (US$)", "fuente": "Fuente",
                              "precios_por_fuente": "Precio en cada fuente", "enlace": "Comprar"}),
             hide_index=True, width="stretch",
             column_config={"Salida": st.column_config.DatetimeColumn(format="DD/MM HH:mm"),
@@ -328,7 +370,7 @@ with tab_rutas:
         else:
             ref_txt = "vuelo directo" if referencia["escalas"] == 0 else f"vía {referencia['via']}"
             st.info(f"**Referencia:** {referencia['aerolinea']} ({ref_txt}) · "
-                    f"{referencia['duracion_h']} h · **{usd(referencia['precio_usd'])}**")
+                    f"{referencia['duracion_h']} h · **{precio(referencia['precio_usd'])}**".replace("$", "\\$"))
 
             orden = st.radio("Ordenar por", ["Precio", "Escala más corta", "Duración total"], horizontal=True)
             columna_orden = {"Precio": ["precio_usd", "duracion_h"],
@@ -339,14 +381,17 @@ with tab_rutas:
             vista = vista.sort_values(columna_orden, na_position="first")
 
             vista = vista.assign(escala_txt=vista["escala_mas_larga_h"].map(
-                lambda h: "protegida" if pd.isna(h) else f"{h:.1f} h"))
+                lambda h: "protegida" if pd.isna(h) else f"{h:.1f} h"),
+                precio_aud=(vista["precio_usd"] * TASA_AUD).round(0),
+                ahorro_aud=(vista["ahorro_usd"] * TASA_AUD).round(0))
             st.dataframe(
-                vista[["ruta", "aerolineas", "tipo", "precio_usd", "ahorro_usd", "ahorro_pct",
+                vista[["ruta", "aerolineas", "tipo", "precio_aud", "precio_usd", "ahorro_aud", "ahorro_usd", "ahorro_pct",
                        "escalas", "escala_txt", "duracion_h", "detalle"]]
                 .rename(columns={"tipo": "Tipo", "ruta": "Ruta", "aerolineas": "Aerolíneas",
                                  "escalas": "Escalas", "escala_txt": "Escala más larga",
                                  "duracion_h": "Duración total (h)", "precio_usd": "Precio (US$)",
                                  "ahorro_usd": "Ahorro (US$)", "ahorro_pct": "Ahorro (%)",
+                                 "precio_aud": "Precio (A$)", "ahorro_aud": "Ahorro (A$)",
                                  "detalle": "Detalle"}),
                 hide_index=True, width="stretch",
                 column_config={"Ahorro (%)": st.column_config.NumberColumn(format="%.1f %%")},
@@ -371,13 +416,15 @@ with tab_destinos:
         if destinos.empty:
             st.warning("No hay vuelos con esos filtros.")
         else:
+            destinos = destinos.assign(precio_m=a_moneda(destinos["precio_usd"]),
+                                       precio_aud=(destinos["precio_usd"] * TASA_AUD).round(0))
             grafico = alt.Chart(destinos).mark_bar(cornerRadiusTopRight=4, cornerRadiusBottomRight=4,
                                                    color=AZUL).encode(
-                x=alt.X("precio_usd:Q", title="US$"),
+                x=alt.X("precio_m:Q", title=MONEDA),
                 y=alt.Y("ciudad:N", title=None, sort="x"),
                 tooltip=[alt.Tooltip("ciudad:N", title="Destino"), alt.Tooltip("fecha:T", title="Fecha"),
                          alt.Tooltip("aerolinea:N", title="Aerolínea"),
-                         alt.Tooltip("precio_usd:Q", title="US$", format=",.0f")],
+                         alt.Tooltip("precio_m:Q", title=MONEDA, format=",.0f")],
             )
             st.altair_chart(grafico.properties(height=26 * len(destinos)), width="stretch")
             st.dataframe(destinos, hide_index=True, width="stretch")
@@ -404,7 +451,7 @@ with tab_alertas:
                                   help="También vigila esa cantidad de días antes y después de cada fecha.")
         a_cada = c2.select_slider("Revisar", options=[1, 2, 3, 7], value=1, key="alerta_cada",
                                   format_func=lambda n: "todos los días" if n == 1 else f"cada {n} días")
-        a_objetivo = c3.number_input("Precio objetivo total (US$)", min_value=0, value=0, step=50,
+        a_objetivo = c3.number_input(f"Precio objetivo total ({MONEDA})", min_value=0, value=0, step=50,
                                      key="alerta_objetivo",
                                      help="Te avisa cuando el precio baje de este valor. "
                                           "Con 0, te avisa cada vez que aparezca un precio más bajo.")
@@ -427,8 +474,9 @@ with tab_alertas:
             if not a_solo_ida and a_vuelta <= a_ida:
                 st.error("La vuelta tiene que ser posterior a la ida.")
             else:
+                objetivo_usd = round(a_objetivo / FACTOR) if a_objetivo else None  # se guarda en US$
                 nueva = al.crear_alerta(origen, destino, a_ida, None if a_solo_ida else a_vuelta,
-                                        a_objetivo or None, a_escalas, flex_dias=a_flex, cada_dias=a_cada)
+                                        objetivo_usd, a_escalas, flex_dias=a_flex, cada_dias=a_cada)
                 with st.spinner("Revisando el precio de hoy…"):
                     al.revisar_alertas(notificar=False, solo_ids=[nueva["id"]], forzar=True)
                 st.session_state["avisos_alertas"] = ["Alerta creada. Ya quedó guardado el precio de hoy."]
@@ -448,7 +496,7 @@ with tab_alertas:
             precios = historial[historial["alerta_id"] == alerta["id"]].sort_values("revisado")
             with st.container(border=True):
                 c1, c2 = st.columns([6, 1])
-                objetivo = (f"Objetivo: {usd(alerta['precio_objetivo'])}" if alerta.get("precio_objetivo")
+                objetivo = (f"Objetivo: {precio(alerta['precio_objetivo'])}" if alerta.get("precio_objetivo")
                             else "Avisa con cualquier bajada")
                 cada = alerta.get("cada_dias", 1)
                 objetivo += (" · revisa " + ("todos los días" if cada == 1 else f"cada {cada} días")
@@ -462,27 +510,30 @@ with tab_alertas:
                 else:
                     ultimo, primero = precios.iloc[-1]["precio_total_usd"], precios.iloc[0]["precio_total_usd"]
                     m1, m2, m3 = st.columns(3)
-                    m1.metric("Último precio", usd(ultimo),
-                              delta=f"{ultimo - primero:+,.0f} vs. el inicio" if ultimo != primero else None,
+                    m1.metric("Último precio", precio_corto(ultimo), help=precio_otro(ultimo),
+                              delta=(f"{(ultimo - primero) * FACTOR:+,.0f} {MONEDA} vs. el inicio"
+                                     if ultimo != primero else None),
                               delta_color="inverse")
-                    m2.metric("Mínimo visto", usd(precios["precio_total_usd"].min()))
+                    minimo_visto = precios["precio_total_usd"].min()
+                    m2.metric("Mínimo visto", precio_corto(minimo_visto), help=precio_otro(minimo_visto))
                     st.caption("Mejor opción en la última revisión: " + str(precios.iloc[-1]["detalle"]))
                     m3.metric("Revisiones", len(precios))
 
         if not historial.empty:
             nombres = {a["id"]: al.describir(a) for a in lista}
             datos = historial[historial["alerta_id"].isin(nombres)].assign(
-                alerta=lambda d: d["alerta_id"].map(nombres))
+                alerta=lambda d: d["alerta_id"].map(nombres),
+                precio_m=lambda d: a_moneda(d["precio_total_usd"]))
             if not datos.empty:
                 st.markdown("**Cómo ha cambiado el precio**")
                 linea = alt.Chart(datos).mark_line(point=alt.OverlayMarkDef(size=60), strokeWidth=2).encode(
                     x=alt.X("revisado:T", title="Fecha de revisión"),
-                    y=alt.Y("precio_total_usd:Q", title="US$", scale=alt.Scale(zero=False)),
+                    y=alt.Y("precio_m:Q", title=MONEDA, scale=alt.Scale(zero=False)),
                     color=alt.Color("alerta:N", title=None, legend=alt.Legend(orient="bottom", labelLimit=400),
                                     scale=alt.Scale(range=COLORES_SERIES)),
                     tooltip=[alt.Tooltip("alerta:N", title="Alerta"),
                              alt.Tooltip("revisado:T", title="Revisado", format="%d/%m %H:%M"),
-                             alt.Tooltip("precio_total_usd:Q", title="US$", format=",.0f"),
+                             alt.Tooltip("precio_m:Q", title=MONEDA, format=",.0f"),
                              alt.Tooltip("detalle:N", title="Vuelos")],
                 )
                 st.altair_chart(linea.properties(height=260), width="stretch")

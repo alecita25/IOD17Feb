@@ -79,6 +79,12 @@ def borrar_alerta(id_alerta):
         historial[historial["alerta_id"] != id_alerta].to_csv(ARCHIVO_HISTORIAL, index=False)
 
 
+def en_dos_monedas(usd):
+    """'US$ 849 (A$ 1.230)'"""
+    tasa, _ = fuentes.tipo_cambio_usd_aud()
+    return f"US$ {usd:,.0f} (A$ {usd * tasa:,.0f})".replace(",", ".")
+
+
 def describir(alerta):
     ida = date.fromisoformat(alerta["fecha_ida"])
     texto = f"{alerta['origen']} → {alerta['destino']} · ida {ida:%d/%m/%Y}"
@@ -209,12 +215,12 @@ def revisar_alertas(notificar=True, hoy=None, solo_ids=None, forzar=False):
 
         objetivo = alerta.get("precio_objetivo")
         if objetivo and precio <= objetivo:
-            motivo = f"¡Bajó de tu precio objetivo (US$ {objetivo:,.0f})!"
+            motivo = f"¡Bajó de tu precio objetivo ({en_dos_monedas(objetivo)})!"
         elif minimo_anterior is not None and precio <= minimo_anterior * (1 - BAJADA_MINIMA_PCT / 100):
-            motivo = f"Nuevo precio más bajo: antes el mínimo era US$ {minimo_anterior:,.0f}."
+            motivo = f"Nuevo precio más bajo: antes el mínimo era {en_dos_monedas(minimo_anterior)}."
         else:
             continue
-        avisos.append(f"✈️ {describir(alerta)}\nAhora: US$ {precio:,.0f} — {motivo}\n"
+        avisos.append(f"✈️ {describir(alerta)}\nAhora: {en_dos_monedas(precio)} — {motivo}\n"
                       f"{actual['detalle']} [{actual['fuente']}]")
 
     if nuevas_filas:

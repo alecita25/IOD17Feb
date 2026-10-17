@@ -36,6 +36,34 @@ TASAS_A_USD = {
     "CLP": 0.00105, "PEN": 0.27, "ARS": 0.001, "BRL": 0.18, "COP": 0.00025, "MXN": 0.055,
 }
 
+HORAS_TIPO_CAMBIO = 12
+
+
+def tipo_cambio_usd_aud():
+    """Cuántos dólares australianos vale 1 dólar estadounidense.
+
+    Consulta el tipo de cambio del día (open.er-api.com, gratis y sin clave) y lo guarda 12 horas.
+    Si no hay conexión, usa el valor aproximado de TASAS_A_USD. Devuelve (tasa, descripción).
+    """
+    archivo = CARPETA_CACHE / "tipo_cambio.json"
+    try:
+        guardado = json.loads(archivo.read_text(encoding="utf-8"))
+        if datetime.now() - datetime.fromisoformat(guardado["guardado"]) < timedelta(hours=HORAS_TIPO_CAMBIO):
+            return guardado["tasa"], f"tipo de cambio del {guardado['dia']}"
+    except (OSError, ValueError, KeyError):
+        pass
+    try:
+        r = requests.get("https://open.er-api.com/v6/latest/USD", timeout=8)
+        tasa = float(r.json()["rates"]["AUD"])
+        dia = date.today().strftime("%d/%m/%Y")
+        CARPETA_CACHE.mkdir(exist_ok=True)
+        archivo.write_text(json.dumps({"guardado": datetime.now().isoformat(), "tasa": tasa, "dia": dia}),
+                           encoding="utf-8")
+        return tasa, f"tipo de cambio del {dia}"
+    except Exception:
+        return 1 / TASAS_A_USD["AUD"], "tipo de cambio aproximado (sin conexión al servicio de divisas)"
+
+
 # Nombres de aerolíneas para fuentes que solo entregan el código IATA
 NOMBRES_AEROLINEAS = {
     "LA": "LATAM", "H2": "Sky Airline", "JA": "JetSMART", "AV": "Avianca", "CM": "Copa Airlines",
