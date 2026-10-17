@@ -15,11 +15,11 @@ Formato: `HH:MM–HH:MM  Actividad`
 
 ## Noches (todos los días)
 
-20:00        Cenar
+Al llegar     Cenar (como apenas llego; no me gusta acostarme llena)
 ~21:30       Rutina de noche: ondas en frío + dejar la ropa lista + celular a cargar lejos de la cama
 22:00        Acostarme (la mayoría de los días; me gustaría intentar antes)
 
-Sueño: 22:00–05:15 = 7 h 15. Ventana libre entre semana: ~18:40–20:00 y ~20:30–21:30.
+Sueño: 22:00–05:15 = 7 h 15. Ventana libre entre semana: ~19:15–21:30 (después de cenar). Miércoles: ~20:30–21:30.
 
 ## Lunes
 _Mañana: rutina de arriba_
@@ -37,7 +37,7 @@ _Mañana: rutina de arriba_
 _Mañana: rutina de arriba, tren de las 08:06_
 ~08:30–18:00  Trabajo
 18:00         Salir a correr después del trabajo
-¿?            Llego a casa → **tarde libre**
+~20:00        Llego a casa y ceno (hora exacta por confirmar) → **poco tiempo libre**
 
 ## Jueves — día de descanso 😴
 _Sin pilates: descanso porque el miércoles (pilates + correr) termino muerta._
@@ -61,4 +61,4 @@ Pilates sin horario fijo — opciones: **07:00**, **08:00** o **16:00**
 (Decidir el sábado en la noche cuál tomar; el resto del día es libre.)
 
 ## Por confirmar
-- Miércoles: ¿a qué hora llegas a casa después de correr?
+- Miércoles: hora exacta de llegada después de correr (~20:00)
