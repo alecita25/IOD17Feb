@@ -13,6 +13,14 @@ Formato: `HH:MM–HH:MM  Actividad`
 
 **Miércoles:** intento tomar el tren de las **08:06** → salir a las **07:56** (30 min menos para alistarme).
 
+## Noches (todos los días)
+
+20:00        Cenar
+~21:30       Rutina de noche: ondas en frío + dejar la ropa lista + celular a cargar lejos de la cama
+22:00        Acostarme (la mayoría de los días; me gustaría intentar antes)
+
+Sueño: 22:00–05:15 = 7 h 15. Ventana libre entre semana: ~18:40–20:00 y ~20:30–21:30.
+
 ## Lunes
 _Mañana: rutina de arriba_
 ~09:00–18:00  Trabajo
@@ -49,7 +57,6 @@ _Mañana: rutina de arriba_
 ## Domingo
 
 ## Por confirmar
-- ¿A qué hora te acuestas? (si te levantas 05:15, para dormir 7–8 h serían ~21:15–22:15)
 - Miércoles: ¿a qué hora llegas a casa después de correr?
 - Sábado: ¿cuánto dura barre y a qué hora te despiertas?
 - Domingo: ¿hay algo fijo?

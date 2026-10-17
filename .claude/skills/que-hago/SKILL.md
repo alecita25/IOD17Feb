@@ -13,8 +13,8 @@ sin sermones sobre el celular.
 
 1. **Lee el contexto** (todos en `agente/`): `perfil.md`, `horario.md`, `pendientes.md`,
    `metas.md`, `ideas.md` y las últimas ~20 líneas de `historial.md`.
-2. **Mira la hora real** en su zona horaria (de `perfil.md`; si no está, usa America/Santiago):
-   `TZ=America/Santiago date "+%A %d-%m-%Y %H:%M"`.
+2. **Mira la hora real** en su zona horaria (de `perfil.md`; si no está, usa Australia/Brisbane):
+   `TZ=Australia/Brisbane date "+%A %d-%m-%Y %H:%M"`.
 3. **Calcula el hueco libre:** cuánto falta para su próximo bloque fijo en `horario.md`.
    Si ella dice cuánto tiempo o energía tiene (argumentos: $ARGUMENTS), eso manda.
 4. **Elige 3 opciones distintas**, que quepan en el hueco y calcen con la energía probable a esa hora:
