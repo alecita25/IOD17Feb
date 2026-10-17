@@ -44,10 +44,12 @@ _Mañana: rutina de arriba_
 14:00         Salgo → **tarde libre larga**
 
 ## Sábado
+09:15–~10:15  Barre (duración por confirmar)
 
 ## Domingo
 
 ## Por confirmar
 - ¿A qué hora te acuestas? (si te levantas 05:15, para dormir 7–8 h serían ~21:15–22:15)
 - Miércoles: ¿a qué hora llegas a casa después de correr?
-- Fines de semana: ¿hay algo fijo?
+- Sábado: ¿cuánto dura barre y a qué hora te despiertas?
+- Domingo: ¿hay algo fijo?
