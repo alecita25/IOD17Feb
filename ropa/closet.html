@@ -5,24 +5,18 @@
 <style>
 /* Layout: perchero horizontal arriba (tus prendas), debajo la semana como siete etiquetas colgantes, una por día */
 :root {
-  --bg: #f6f3f7;
+  --bg: #fdfbfe;
   --surface: #ffffff;
   --fg: #231c2b;
   --muted: #6d6476;
-  --line: #e2dbe6;
-  --accent: #7a3f8f;
-  --accent-soft: #efe4f3;
+  --line: #ece5f0;
+  --accent: #8e5aa3;
+  --accent-soft: #f6eef9;
   --on-accent: #ffffff;
+  color-scheme: light;
   --display: "Fraunces", Georgia, "Times New Roman", serif;
   --body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #17131b; --surface: #211b27; --fg: #f1ebf4; --muted: #a79eb0; --line: #352d3d;
-  --accent: #c99ad9; --accent-soft: #33263b; --on-accent: #1a1220; color-scheme: dark } }
-:root[data-theme="dark"] {
-  --bg: #17131b; --surface: #211b27; --fg: #f1ebf4; --muted: #a79eb0; --line: #352d3d;
-  --accent: #c99ad9; --accent-soft: #33263b; --on-accent: #1a1220; color-scheme: dark }
-
 body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
 .wrap { max-width: 980px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 36px; }
 h1, h2 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
