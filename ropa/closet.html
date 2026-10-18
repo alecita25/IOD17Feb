@@ -1,9 +1,9 @@
-<title>Mi Clóset Semanal</title>
+<title>Alecita’s Closet</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;700&display=swap">
 <style>
-/* Layout: perchero horizontal arriba (tus prendas), debajo la semana como siete etiquetas colgantes, una por día */
+/* Layout: a clothes rail across the top (your items), with the week below as seven hanging tags, one per day */
 :root {
   --bg: #fdfbfe;
   --surface: #ffffff;
@@ -69,69 +69,68 @@ input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Clóset de Ale</div>
-    <h1>Mi Clóset Semanal</h1>
-    <p class="lede">Sube fotos de tus prendas desde el celular y arma looks para los siete días con lo que ya tienes.</p>
+    <div class="eyebrow">Weekly outfits</div>
+    <h1>Alecita’s Closet</h1>
+    <p class="lede">Upload photos of your clothes from your phone and get a look for every day of the week, built from what you already own.</p>
   </header>
 
   <section aria-labelledby="h-prendas">
     <div class="row">
-      <h2 id="h-prendas">Tus prendas <span class="count" id="count"></span></h2>
+      <h2 id="h-prendas">Your clothes <span class="count" id="count"></span></h2>
       <label class="btn" id="upload-btn" hidden>
         <input type="file" id="file" accept="image/*" multiple>
-        + Agregar fotos
+        + Add photos
       </label>
     </div>
     <div class="status" id="up-status" role="status"></div>
     <div class="rail"><div class="items" id="items"></div></div>
     <div class="empty" id="empty">
-      Aquí van a aparecer tus prendas. Toca <strong>Agregar fotos</strong> y elige varias desde tu galería: poleras, pantalones, faldas, vestidos, chaquetas, zapatos y accesorios. Una prenda por foto funciona mejor.
+      Your clothes will show up here. Tap <strong>Add photos</strong> and pick several from your gallery: tops, pants, skirts, dresses, jackets, shoes and accessories. One item per photo works best.
     </div>
-    <p class="notice" id="ro-note" hidden>Solo la dueña del clóset puede agregar o quitar prendas.</p>
+    <p class="notice" id="ro-note" hidden>Only the closet owner can add or remove clothes.</p>
   </section>
 
   <section aria-labelledby="h-prefs">
-    <h2 id="h-prefs">Tu semana</h2>
+    <h2 id="h-prefs">Your week</h2>
     <div class="prefs">
-      <label class="field" for="p-plan">Qué tienes esta semana
-        <input id="p-plan" placeholder="Ej: oficina lun a jue, cena el viernes, paseo el domingo">
+      <label class="field" for="p-plan">What’s on this week
+        <input id="p-plan" placeholder="e.g. office Mon–Thu, dinner Friday, outing Sunday">
       </label>
-      <label class="field" for="p-clima">Clima
+      <label class="field" for="p-clima">Weather
         <select id="p-clima">
-          <option value="templado">Templado (primavera)</option>
-          <option value="caluroso">Caluroso</option>
-          <option value="frío">Frío</option>
-          <option value="lluvioso">Lluvioso</option>
+          <option value="mild (spring)">Mild (spring)</option>
+          <option value="hot">Hot</option>
+          <option value="cold">Cold</option>
+          <option value="rainy">Rainy</option>
         </select>
       </label>
-      <label class="field" for="p-estilo">Estilo
+      <label class="field" for="p-estilo">Style
         <select id="p-estilo">
-          <option value="casual cómodo">Casual cómodo</option>
-          <option value="clásico y pulcro">Clásico y pulcro</option>
-          <option value="minimalista">Minimalista</option>
-          <option value="atrevido, con color">Atrevido, con color</option>
+          <option value="casual and comfy">Casual and comfy</option>
+          <option value="classic and polished">Classic and polished</option>
+          <option value="minimalist">Minimalist</option>
+          <option value="bold, with color">Bold, with color</option>
         </select>
       </label>
     </div>
     <div class="row">
-      <button id="gen" disabled>Armar mi semana</button>
+      <button id="gen" disabled>Plan my week</button>
       <span class="status" id="gen-status" role="status"></span>
     </div>
   </section>
 
   <section aria-labelledby="h-looks">
     <div class="row">
-      <h2 id="h-looks">Looks de la semana</h2>
+      <h2 id="h-looks">This week’s looks</h2>
       <span class="count" id="week-date"></span>
     </div>
     <div class="week" id="week"></div>
-    <div class="empty" id="week-empty">Cuando tengas al menos 4 prendas, toca <strong>Armar mi semana</strong> y aquí aparece un look por día, de lunes a domingo, con el porqué de cada combinación.</div>
+    <div class="empty" id="week-empty">Once you have at least 4 items, tap <strong>Plan my week</strong> and a look for each day, Monday to Sunday, appears here, with why each combination works.</div>
     <div class="tips" id="tips" hidden></div>
   </section>
 </div>
 
 <script>
-const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const $ = id => document.getElementById(id);
 let db = null, assets = null, sample = null;
 let prendas = [];   // [{id, assetId, url, nombre, tipo, color}]
@@ -145,12 +144,12 @@ function renderItems() {
   $("count").textContent = prendas.length ? "· " + prendas.length : "";
   for (const p of prendas) {
     const d = document.createElement("div"); d.className = "item";
-    const img = document.createElement("img"); img.src = srcFor(p); img.alt = p.nombre || "Prenda"; img.loading = "lazy";
-    const n = document.createElement("div"); n.className = "name"; n.textContent = p.nombre || "Sin describir aún";
+    const img = document.createElement("img"); img.src = srcFor(p); img.alt = p.nombre || "Clothing item"; img.loading = "lazy";
+    const n = document.createElement("div"); n.className = "name"; n.textContent = p.nombre || "Not described yet";
     d.append(img, n);
     if (assets) {
       const b = document.createElement("button"); b.className = "del"; b.type = "button"; b.textContent = "×";
-      b.setAttribute("aria-label", "Quitar " + (p.nombre || "prenda"));
+      b.setAttribute("aria-label", "Remove " + (p.nombre || "item"));
       b.onclick = () => quitar(p, b);
       d.append(b);
     }
@@ -164,7 +163,7 @@ function renderWeek() {
   const byId = Object.fromEntries(prendas.map(p => [p.id, p]));
   const dias = semana?.dias || [];
   $("week-empty").hidden = dias.length > 0;
-  $("week-date").textContent = semana?.creado ? "Armada el " + new Date(semana.creado).toLocaleDateString("es-CL", {day:"numeric", month:"long"}) : "";
+  $("week-date").textContent = semana?.creado ? "Planned " + new Date(semana.creado).toLocaleDateString("en-US", {day:"numeric", month:"long"}) : "";
   for (const d of dias) {
     const c = document.createElement("article"); c.className = "day";
     const h = document.createElement("div"); h.className = "day-head";
@@ -174,7 +173,7 @@ function renderWeek() {
     const look = document.createElement("div"); look.className = "look";
     for (const pid of d.prendas || []) {
       const p = byId[pid]; if (!p) continue;
-      const img = document.createElement("img"); img.src = srcFor(p); img.alt = p.nombre || "Prenda"; img.loading = "lazy";
+      const img = document.createElement("img"); img.src = srcFor(p); img.alt = p.nombre || "Clothing item"; img.loading = "lazy";
       look.append(img);
     }
     const desc = document.createElement("p"); desc.textContent = d.look || "";
@@ -183,17 +182,17 @@ function renderWeek() {
     box.append(c);
   }
   const tips = $("tips"); tips.textContent = "";
-  const lista = [...(semana?.comodines || []).map(x => "Comodín: " + x), ...(semana?.sugerencias || []).map(x => "Te sumaría: " + x)];
+  const lista = [...(semana?.comodines || []).map(x => "Go-to piece: " + x), ...(semana?.sugerencias || []).map(x => "Worth adding: " + x)];
   tips.hidden = lista.length === 0;
   if (lista.length) {
-    const h = document.createElement("strong"); h.textContent = "Notas de estilo";
+    const h = document.createElement("strong"); h.textContent = "Style notes";
     const ul = document.createElement("ul");
     for (const x of lista) { const li = document.createElement("li"); li.textContent = x; ul.append(li); }
     tips.append(h, ul);
   }
 }
 
-// Reduce el tamaño de la foto antes de subirla o enviarla
+// Shrink the photo before uploading or sending it
 async function shrink(blob, max) {
   try {
     const bmp = await createImageBitmap(blob);
@@ -210,7 +209,7 @@ $("file").addEventListener("change", async e => {
   if (!files.length || !assets || !db) return;
   let ok = 0, fail = 0;
   for (const [i, f] of files.entries()) {
-    $("up-status").textContent = `Subiendo ${i + 1} de ${files.length}…`;
+    $("up-status").textContent = `Uploading ${i + 1} of ${files.length}…`;
     try {
       const small = await shrink(f, 1400);
       const r = await assets.upload(small, { type: small.type || f.type });
@@ -218,13 +217,13 @@ $("file").addEventListener("change", async e => {
       ok++;
     } catch (err) { fail++; console.warn(err); }
   }
-  $("up-status").textContent = fail ? `Se subieron ${ok}. ${fail} no se pudieron subir; prueba de nuevo con esas.` : `Listo: ${ok} prenda${ok === 1 ? "" : "s"} agregada${ok === 1 ? "" : "s"}.`;
+  $("up-status").textContent = fail ? `Uploaded ${ok}. ${fail} couldn’t be uploaded; try those again.` : `Done: added ${ok} item${ok === 1 ? "" : "s"}.`;
 });
 
 async function quitar(p, btn) {
-  if (btn.dataset.armed !== "1") { btn.dataset.armed = "1"; btn.textContent = "?"; btn.title = "Toca otra vez para quitar"; setTimeout(() => { btn.dataset.armed = ""; btn.textContent = "×"; }, 3000); return; }
+  if (btn.dataset.armed !== "1") { btn.dataset.armed = "1"; btn.textContent = "?"; btn.title = "Tap again to remove"; setTimeout(() => { btn.dataset.armed = ""; btn.textContent = "×"; }, 3000); return; }
   try { await db.doc("prendas/" + p.id).delete(); await assets.delete(p.assetId).catch(() => {}); }
-  catch (err) { $("up-status").textContent = "No se pudo quitar la prenda. Intenta de nuevo."; }
+  catch (err) { $("up-status").textContent = "Couldn’t remove that item. Try again."; }
 }
 
 async function blobFor(p) { const r = await fetch(srcFor(p)); return shrink(await r.blob(), 640); }
@@ -236,21 +235,21 @@ $("gen").addEventListener("click", async () => {
     const lim = await sample.limits();
     const max = Math.min(lim.images?.maxCount || 20, prendas.length);
     const usadas = prendas.slice(0, max);
-    st.textContent = "Mirando tus prendas…";
+    st.textContent = "Looking at your clothes…";
     const imgs = await Promise.all(usadas.map(blobFor));
     const prefs = { plan: $("p-plan").value.trim(), clima: $("p-clima").value, estilo: $("p-estilo").value };
     savePrefs(prefs);
     const prompt =
-`Eres estilista personal. Te envío ${usadas.length} fotos de prendas del clóset de una mujer, en orden; la foto 1 es la prenda P1, la foto 2 es P2, y así.
-Plan de la semana: ${prefs.plan || "rutina normal de trabajo y fin de semana libre"}. Clima: ${prefs.clima}. Estilo que busca: ${prefs.estilo}.
-1) Describe cada prenda en pocas palabras (nombre corto, tipo, color).
-2) Arma un look completo para cada día de Lunes a Domingo usando SOLO estas prendas. Puedes repetir prendas, pero varía las combinaciones. Si falta algo (ej. zapatos), dilo en el texto del look.
-3) Indica 2 o 3 prendas comodín del clóset y 1 o 2 prendas que convendría sumar.
-Responde solo JSON en español con esta forma:
+`You are a personal stylist. I'm sending ${usadas.length} photos of clothing items from a woman's closet, in order: photo 1 is item P1, photo 2 is P2, and so on.
+This week's plans: ${prefs.plan || "a normal work routine and a free weekend"}. Weather: ${prefs.clima}. Style she wants: ${prefs.estilo}.
+1) Describe each item in a few words (short name, type, color).
+2) Put together a complete look for each day from Monday to Sunday using ONLY these items. Items can repeat, but vary the combinations. If something is missing (e.g. shoes), say so in the look text.
+3) Name 2 or 3 go-to pieces from the closet and 1 or 2 items worth adding.
+Reply with JSON only, in English, in this shape:
 {"prendas":[{"ref":"P1","nombre":"…","tipo":"…","color":"…"}],
- "dias":[{"dia":"Lunes","ocasion":"Oficina","prendas":["P1","P3"],"look":"frase corta del look","porque":"por qué funciona: colores, proporciones, texturas"}],
+ "dias":[{"dia":"Monday","ocasion":"Office","prendas":["P1","P3"],"look":"short description of the look","porque":"why it works: colors, proportions, textures"}],
  "comodines":["…"],"sugerencias":["…"]}`;
-    st.textContent = "Armando tus looks…";
+    st.textContent = "Putting your looks together…";
     const out = await sample.json(prompt, { images: imgs, modelTier: "complex", cache: false });
     const ref = r => usadas[parseInt(String(r).replace(/\D/g, ""), 10) - 1];
     for (const d of out.prendas || []) {
@@ -260,13 +259,13 @@ Responde solo JSON en español con esta forma:
     const dias = (out.dias || []).map(d => ({ dia: d.dia, ocasion: d.ocasion || "", look: d.look || "", porque: d.porque || "",
       prendas: (d.prendas || []).map(ref).filter(Boolean).map(p => p.id) }));
     await db.doc("semana/actual").set({ dias, comodines: out.comodines || [], sugerencias: out.sugerencias || [], creado: Date.now(), prefs });
-    st.textContent = "Tu semana está lista.";
-    if (prendas.length > max) st.textContent += ` Usé ${max} de tus ${prendas.length} prendas por límite de fotos.`;
+    st.textContent = "Your week is ready.";
+    if (prendas.length > max) st.textContent += ` Used ${max} of your ${prendas.length} items because of the photo limit.`;
   } catch (err) {
     const code = err?.code;
-    st.textContent = code === "not_granted" ? "Para armar looks, permite que la página consulte a Claude cuando lo pida."
-      : code === "rate_limited" ? "Muchos pedidos seguidos. Espera un minuto y vuelve a tocar el botón."
-      : "No se pudo armar la semana. Vuelve a intentarlo en un momento.";
+    st.textContent = code === "not_granted" ? "To plan looks, allow the page to ask Claude when it prompts you."
+      : code === "rate_limited" ? "Too many requests in a row. Wait a minute and tap the button again."
+      : "Couldn’t plan your week. Try again in a moment.";
     console.warn(err);
   } finally { btn.disabled = !(prendas.length >= 4); }
 });
@@ -274,7 +273,7 @@ Responde solo JSON en español con esta forma:
 function savePrefs(p) { try { localStorage.setItem("prefs", JSON.stringify(p)); } catch {} }
 function loadPrefs() {
   try { const p = JSON.parse(localStorage.getItem("prefs") || "null"); if (!p) return;
-    $("p-plan").value = p.plan || ""; $("p-clima").value = p.clima || "templado"; $("p-estilo").value = p.estilo || "casual cómodo"; } catch {}
+    $("p-plan").value = p.plan || ""; $("p-clima").value = p.clima || "mild (spring)"; $("p-estilo").value = p.estilo || "casual and comfy"; } catch {}
 }
 
 renderItems(); renderWeek(); loadPrefs();
@@ -284,11 +283,11 @@ renderItems(); renderWeek(); loadPrefs();
   $("upload-btn").hidden = !assets;
   $("ro-note").hidden = !!assets;
   renderItems();
-  if (!db) { $("up-status").textContent = "Inicia sesión en claude.ai para ver y guardar tu clóset."; return; }
+  if (!db) { $("up-status").textContent = "Sign in to claude.ai to see and save your closet."; return; }
   db.collection("prendas").orderBy("creado", "asc").onSnapshot(snap => {
     prendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderItems(); renderWeek();
-  }, () => { $("up-status").textContent = "No se pudo cargar el clóset. Recarga la página."; });
+  }, () => { $("up-status").textContent = "Couldn’t load your closet. Reload the page."; });
   db.doc("semana/actual").onSnapshot(s => { semana = s.exists ? s.data() : null; renderWeek(); });
 })();
 </script>
