@@ -42,6 +42,8 @@ input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .item img, .ph { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--line); max-width: 100%; }
 .item .name { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item .del { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; padding: 0; justify-content: center; border-radius: 50%; background: var(--surface); color: var(--fg); border: 1px solid var(--line); font-size: 15px; line-height: 1; }
+details.closet > summary { cursor: pointer; font-weight: 700; color: var(--accent); padding: 8px 0; list-style-position: inside; }
+details.closet[open] > summary { margin-bottom: 12px; }
 .empty { border: 1.5px dashed var(--line); border-radius: 14px; padding: 28px 20px; color: var(--muted); text-align: center; }
 
 .prefs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
@@ -77,25 +79,18 @@ input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
   <header>
     <div class="eyebrow">Weekly outfits</div>
     <h1>Alecita’s Closet</h1>
-    <p class="lede">Upload photos of your clothes from your phone and get a look for every day of the week, built from what you already own.</p>
+    <p class="lede">A look for every day of the week, built from what you already own.</p>
   </header>
 
-  <section aria-labelledby="h-prendas">
+  <section aria-labelledby="h-looks">
     <div class="row">
-      <h2 id="h-prendas">Your clothes <span class="count" id="count"></span></h2>
-      <label class="btn" id="upload-btn" hidden>
-        <input type="file" id="file" accept="image/*" multiple>
-        + Add photos
-      </label>
+      <h2 id="h-looks">This week’s looks</h2>
+      <span class="count" id="week-date"></span>
     </div>
-    <div class="status" id="up-status" role="status"></div>
-    <div class="rail"><div class="items" id="items"></div></div>
-    <div class="empty" id="empty">
-      Your clothes will show up here. Tap <strong>Add photos</strong> and pick several from your gallery: tops, pants, skirts, dresses, jackets, shoes and accessories. One item per photo works best.
-    </div>
-    <p class="notice" id="ro-note" hidden>Photo uploads aren’t available in this view. Open this link in Safari or Chrome while signed in to claude.ai, then tap <strong>+ Add photos</strong>.</p>
+    <div class="week" id="week"></div>
+    <div class="empty" id="week-empty">Once you have at least 4 items, tap <strong>Plan my week</strong> and a look for each day, Monday to Sunday, appears here, with why each combination works.</div>
+    <div class="tips" id="tips" hidden></div>
   </section>
-
   <section aria-labelledby="h-prefs">
     <h2 id="h-prefs">Your week</h2>
     <p class="lede">Pick the occasion and the style for each day. Mix them however you like, like a comfy office day and a polished one.</p>
@@ -116,15 +111,25 @@ input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
     </div>
   </section>
 
-  <section aria-labelledby="h-looks">
+  <section aria-labelledby="h-prendas">
     <div class="row">
-      <h2 id="h-looks">This week’s looks</h2>
-      <span class="count" id="week-date"></span>
+      <h2 id="h-prendas">Your clothes <span class="count" id="count"></span></h2>
+      <label class="btn" id="upload-btn" hidden>
+        <input type="file" id="file" accept="image/*" multiple>
+        + Add photos
+      </label>
     </div>
-    <div class="week" id="week"></div>
-    <div class="empty" id="week-empty">Once you have at least 4 items, tap <strong>Plan my week</strong> and a look for each day, Monday to Sunday, appears here, with why each combination works.</div>
-    <div class="tips" id="tips" hidden></div>
+    <div class="status" id="up-status" role="status"></div>
+    <details class="closet" id="closet-details">
+      <summary id="closet-summary">Show my clothes</summary>
+      <div class="rail"><div class="items" id="items"></div></div>
+    </details>
+    <div class="empty" id="empty">
+      Your clothes will show up here. Tap <strong>Add photos</strong> and pick several from your gallery: tops, pants, skirts, dresses, jackets, shoes and accessories. One item per photo works best.
+    </div>
+    <p class="notice" id="ro-note" hidden>Photo uploads aren’t available in this view. Open this link in Safari or Chrome while signed in to claude.ai, then tap <strong>+ Add photos</strong>.</p>
   </section>
+
 </div>
 
 <script>
@@ -163,6 +168,7 @@ function renderItems() {
   const box = $("items"); box.textContent = "";
   $("empty").hidden = prendas.length > 0;
   $("count").textContent = prendas.length ? "· " + prendas.length : "";
+  $("closet-details").hidden = prendas.length === 0;
   for (const p of prendas) {
     const d = document.createElement("div"); d.className = "item";
     const img = document.createElement("img"); img.src = srcFor(p); img.alt = p.nombre || "Clothing item"; img.loading = "lazy";
