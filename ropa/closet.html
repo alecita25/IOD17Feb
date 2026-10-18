@@ -160,7 +160,8 @@ let semana = null;
 let opciones = null;
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const OCCASIONS = ["Office","Work from home","Casual / weekend","Dinner / night out","Event","Home / rest","Travel"];
-const STYLES = ["Casual and comfy","Classic and polished","Minimalist","Bold, with color"];
+const STYLE_GUIDE = "What each style means: Casual and comfy = relaxed fits, jeans, tees, sneakers. Classic and polished = tailored trousers or skirts, shirts, belts, neat shoes. Minimalist = few colors, clean lines, no prints. Bold, with color = one strong color or statement piece. Romantic = soft colors, ruffles, lace, puff sleeves, flowing skirts. Elegant = refined fabrics like satin and silk, midi lengths, heels or boots, for dinners and events. Edgy = black, leather, chunky boots, contrast. Boho = loose flowing pieces, stripes, prints, scarves, earthy tones.";
+const STYLES = ["Casual and comfy","Classic and polished","Minimalist","Bold, with color","Romantic","Elegant","Edgy","Boho"];
 const DEFAULT_PLAN = DAYS.map((d, i) => ({ dia: d, ocasion: i < 5 ? "Office" : "Casual / weekend", estilo: i % 2 ? "Classic and polished" : "Casual and comfy" }));
 
 function buildPlan(plan) {
@@ -348,7 +349,7 @@ $("gen-opts").addEventListener("click", async () => {
     const prefs = readPrefs();
     const combos = [...new Set(prefs.plan.map(p => `${p.ocasion}, ${p.estilo}`))];
     const prompt =
-`You are a personal stylist for a woman. Her closet:
+`You are a personal stylist for a woman. ${STYLE_GUIDE} Her closet:
 ${catalog.map((p, k) => `C${k + 1}: ${p.nombre} (${p.tipo || "item"}, ${p.color || "?"})`).join("\n")}
 Weather: ${prefs.clima}.${prefs.notas ? ` Her own rules, follow them strictly: ${prefs.notas}` : ""}
 Create 12 different looks she can choose from for her week. Cover these occasions and styles, at least 2 looks each: ${combos.join("; ")}.
@@ -380,7 +381,7 @@ async function redoDay(i, btn) {
     const name = id => prendas.find(p => p.id === id)?.nombre || "";
     const others = (semana?.dias || []).filter(d => d.dia !== day.dia).map(d => `${d.dia}: ${(d.prendas || []).map(name).filter(Boolean).join(", ")}`).join("\n");
     const prompt =
-`You are a personal stylist for a woman. Her closet:
+`You are a personal stylist for a woman. ${STYLE_GUIDE} Her closet:
 ${catalog.map((p, k) => `C${k + 1}: ${p.nombre} (${p.tipo || "item"}, ${p.color || "?"})`).join("\n")}
 Weather: ${prefs.clima}.${prefs.notas ? ` Her own rules, follow them strictly: ${prefs.notas}` : ""}
 Make ONE new look for ${day.dia}: ${plan.ocasion}, ${plan.estilo}. ${(day.prendas || []).length ? `It must be clearly different from her current ${day.dia} look (${day.prendas.map(name).filter(Boolean).join(", ")}).` : ""}
@@ -417,7 +418,7 @@ $("gen").addEventListener("click", async () => {
     const prefs = readPrefs();
     savePrefs(prefs);
     const prompt =
-`You are a personal stylist for a woman. Her closet:
+`You are a personal stylist for a woman. ${STYLE_GUIDE} Her closet:
 ${catalog.map((p, i) => `C${i + 1}: ${p.nombre} (${p.tipo || "item"}, ${p.color || "?"})`).join("\n") || "(no described items yet)"}
 ${nuevas.length ? `I'm also sending ${nuevas.length} photos of new items, in order: photo 1 is item P1, photo 2 is P2, and so on.` : ""}
 Weather: ${prefs.clima}. Her plan for each day (occasion and the style she wants that day):
