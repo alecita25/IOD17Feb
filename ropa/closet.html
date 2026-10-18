@@ -39,7 +39,7 @@ input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .rail::before { content: ""; position: absolute; left: 0; right: 0; top: 4px; height: 3px; border-radius: 2px; background: var(--line); }
 .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; }
 .item { position: relative; display: grid; gap: 4px; min-width: 0; }
-.item img, .ph { width: 100%; aspect-ratio: 3/4; object-fit: contain; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); max-width: 100%; }
+.item img, .ph { width: 100%; aspect-ratio: 3/4; object-fit: contain; border-radius: 10px; background: var(--surface); border: 0; padding: 6px; box-sizing: border-box; max-width: 100%; }
 .item .name { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item .del { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; padding: 0; justify-content: center; border-radius: 50%; background: var(--surface); color: var(--fg); border: 1px solid var(--line); font-size: 15px; line-height: 1; }
 details.closet > summary { cursor: pointer; font-weight: 700; color: var(--accent); padding: 8px 0; list-style-position: inside; }
@@ -64,7 +64,7 @@ details.closet[open] > summary { margin-bottom: 12px; }
 .day-name { font-family: var(--display); font-size: 20px; font-weight: 700; }
 .tag { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
 .look { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
-.look img { width: 100%; aspect-ratio: 3/4; object-fit: contain; background: var(--surface); border-radius: 8px; border: 1px solid var(--line); }
+.look img { width: 100%; aspect-ratio: 3/4; object-fit: contain; background: transparent; border: 0; }
 .day p { margin: 0; font-size: 14px; }
 .day .why { color: var(--muted); font-size: 13px; }
 .wear { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
