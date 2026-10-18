@@ -48,6 +48,7 @@ details.closet[open] > summary { margin-bottom: 12px; }
 
 .prefs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.field.notes { grid-column: 1 / -1; }
 .field input, .field select { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
 
 .plan { display: grid; gap: 8px; }
@@ -96,6 +97,9 @@ details.closet[open] > summary { margin-bottom: 12px; }
     <p class="lede">Pick the occasion and the style for each day. Mix them however you like, like a comfy office day and a polished one.</p>
     <div class="plan" id="plan"></div>
     <div class="prefs">
+      <label class="field notes" for="p-notas">Notes for your stylist
+        <input id="p-notas" placeholder="e.g. no sleeveless tops for the office, no heels on Monday">
+      </label>
       <label class="field" for="p-clima">Weather
         <select id="p-clima">
           <option value="mild (spring)">Mild (spring)</option>
@@ -160,7 +164,7 @@ function buildPlan(plan) {
   });
 }
 function readPlan() { return DAYS.map((d, i) => ({ dia: d, ocasion: $(`p-occasion-${i}`).value, estilo: $(`p-style-${i}`).value })); }
-function readPrefs() { return { plan: readPlan(), clima: $("p-clima").value }; }
+function readPrefs() { return { plan: readPlan(), clima: $("p-clima").value, notas: $("p-notas").value.trim() }; }
 
 function srcFor(p) { return p.url || ("/_blob/" + p.assetId); }
 
@@ -276,6 +280,7 @@ ${catalog.map((p, i) => `C${i + 1}: ${p.nombre} (${p.tipo || "item"}, ${p.color 
 ${nuevas.length ? `I'm also sending ${nuevas.length} photos of new items, in order: photo 1 is item P1, photo 2 is P2, and so on.` : ""}
 Weather: ${prefs.clima}. Her plan for each day (occasion and the style she wants that day):
 ${prefs.plan.map(p => `- ${p.dia}: ${p.ocasion}, ${p.estilo}`).join("\n")}
+${prefs.notas ? `Her own rules, follow them strictly: ${prefs.notas}` : ""}
 ${nuevas.length ? "1) Describe each new photo item in a few words (short name, type, color).\n" : ""}2) Put together a complete look for each day from Monday to Sunday that fits that day’s occasion, style and the weather, using ONLY items listed above (refer to them by C or P number). Every look needs a top, a bottom (pants, skirt) or a dress, and shoes when she has any; add a belt, scarf or layer when it helps. Vary the combinations across the week. If something truly is missing, say so in the look text.
 3) Name 2 or 3 go-to pieces from the closet and 1 or 2 items worth adding.
 Reply with JSON only, in English, in this shape:
@@ -314,13 +319,16 @@ function savePrefs(p) {
 function applyPrefs(p) {
   if (Array.isArray(p?.plan) && p.plan.length === 7) buildPlan(p.plan);
   if (p?.clima) $("p-clima").value = p.clima;
+  if (typeof p?.notas === "string") $("p-notas").value = p.notas;
 }
 function loadPrefs() {
   let p = null;
   try { p = JSON.parse(localStorage.getItem("prefs") || "null"); } catch {}
   buildPlan(Array.isArray(p?.plan) && p.plan.length === 7 ? p.plan : DEFAULT_PLAN);
   if (p?.clima) $("p-clima").value = p.clima;
+  if (typeof p?.notas === "string") $("p-notas").value = p.notas;
   $("p-clima").addEventListener("change", () => savePrefs(readPrefs()));
+  $("p-notas").addEventListener("input", () => savePrefs(readPrefs()));
 }
 
 renderItems(); renderWeek(); loadPrefs();
