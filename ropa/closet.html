@@ -1,0 +1,300 @@
+<title>Mi Clóset Semanal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;700&display=swap">
+<style>
+/* Layout: perchero horizontal arriba (tus prendas), debajo la semana como siete etiquetas colgantes, una por día */
+:root {
+  --bg: #f6f3f7;
+  --surface: #ffffff;
+  --fg: #231c2b;
+  --muted: #6d6476;
+  --line: #e2dbe6;
+  --accent: #7a3f8f;
+  --accent-soft: #efe4f3;
+  --on-accent: #ffffff;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17131b; --surface: #211b27; --fg: #f1ebf4; --muted: #a79eb0; --line: #352d3d;
+  --accent: #c99ad9; --accent-soft: #33263b; --on-accent: #1a1220; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #17131b; --surface: #211b27; --fg: #f1ebf4; --muted: #a79eb0; --line: #352d3d;
+  --accent: #c99ad9; --accent-soft: #33263b; --on-accent: #1a1220; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 36px; }
+h1, h2 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(30px, 7vw, 46px); line-height: 1.05; }
+h2 { font-size: 22px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.lede { color: var(--muted); max-width: 60ch; margin: 8px 0 0; }
+section { display: grid; gap: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+button, .btn { font: inherit; font-weight: 700; border-radius: 999px; padding: 11px 18px; border: 1.5px solid var(--accent); cursor: pointer; background: var(--accent); color: var(--on-accent); display: inline-flex; align-items: center; gap: 8px; }
+button.ghost { background: transparent; color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, label.btn:focus-within, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+/* perchero */
+.rail { position: relative; padding-top: 14px; }
+.rail::before { content: ""; position: absolute; left: 0; right: 0; top: 4px; height: 3px; border-radius: 2px; background: var(--line); }
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; }
+.item { position: relative; display: grid; gap: 4px; min-width: 0; }
+.item img, .ph { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--line); max-width: 100%; }
+.item .name { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .del { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; padding: 0; justify-content: center; border-radius: 50%; background: var(--surface); color: var(--fg); border: 1px solid var(--line); font-size: 15px; line-height: 1; }
+.empty { border: 1.5px dashed var(--line); border-radius: 14px; padding: 28px 20px; color: var(--muted); text-align: center; }
+
+.prefs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.field input, .field select { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+
+/* semana */
+.week { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.day { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.day-name { font-family: var(--display); font-size: 20px; font-weight: 700; }
+.tag { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.look { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+.look img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+.day p { margin: 0; font-size: 14px; }
+.day .why { color: var(--muted); font-size: 13px; }
+.tips { background: var(--accent-soft); border-radius: 16px; padding: 18px; display: grid; gap: 6px; }
+.tips ul { margin: 0; padding-left: 18px; }
+
+.status { font-size: 13px; color: var(--muted); min-height: 1.5em; }
+.notice { font-size: 13px; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .day { animation: drop .35s ease both; } }
+@keyframes drop { from { transform: translateY(-4px); } to { transform: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Clóset de Ale</div>
+    <h1>Mi Clóset Semanal</h1>
+    <p class="lede">Sube fotos de tus prendas desde el celular y arma looks para los siete días con lo que ya tienes.</p>
+  </header>
+
+  <section aria-labelledby="h-prendas">
+    <div class="row">
+      <h2 id="h-prendas">Tus prendas <span class="count" id="count"></span></h2>
+      <label class="btn" id="upload-btn" hidden>
+        <input type="file" id="file" accept="image/*" multiple>
+        + Agregar fotos
+      </label>
+    </div>
+    <div class="status" id="up-status" role="status"></div>
+    <div class="rail"><div class="items" id="items"></div></div>
+    <div class="empty" id="empty">
+      Aquí van a aparecer tus prendas. Toca <strong>Agregar fotos</strong> y elige varias desde tu galería: poleras, pantalones, faldas, vestidos, chaquetas, zapatos y accesorios. Una prenda por foto funciona mejor.
+    </div>
+    <p class="notice" id="ro-note" hidden>Solo la dueña del clóset puede agregar o quitar prendas.</p>
+  </section>
+
+  <section aria-labelledby="h-prefs">
+    <h2 id="h-prefs">Tu semana</h2>
+    <div class="prefs">
+      <label class="field" for="p-plan">Qué tienes esta semana
+        <input id="p-plan" placeholder="Ej: oficina lun a jue, cena el viernes, paseo el domingo">
+      </label>
+      <label class="field" for="p-clima">Clima
+        <select id="p-clima">
+          <option value="templado">Templado (primavera)</option>
+          <option value="caluroso">Caluroso</option>
+          <option value="frío">Frío</option>
+          <option value="lluvioso">Lluvioso</option>
+        </select>
+      </label>
+      <label class="field" for="p-estilo">Estilo
+        <select id="p-estilo">
+          <option value="casual cómodo">Casual cómodo</option>
+          <option value="clásico y pulcro">Clásico y pulcro</option>
+          <option value="minimalista">Minimalista</option>
+          <option value="atrevido, con color">Atrevido, con color</option>
+        </select>
+      </label>
+    </div>
+    <div class="row">
+      <button id="gen" disabled>Armar mi semana</button>
+      <span class="status" id="gen-status" role="status"></span>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-looks">
+    <div class="row">
+      <h2 id="h-looks">Looks de la semana</h2>
+      <span class="count" id="week-date"></span>
+    </div>
+    <div class="week" id="week"></div>
+    <div class="empty" id="week-empty">Cuando tengas al menos 4 prendas, toca <strong>Armar mi semana</strong> y aquí aparece un look por día, de lunes a domingo, con el porqué de cada combinación.</div>
+    <div class="tips" id="tips" hidden></div>
+  </section>
+</div>
+
+<script>
+const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+const $ = id => document.getElementById(id);
+let db = null, assets = null, sample = null;
+let prendas = [];   // [{id, assetId, url, nombre, tipo, color}]
+let semana = null;
+
+function srcFor(p) { return p.url || ("/_blob/" + p.assetId); }
+
+function renderItems() {
+  const box = $("items"); box.textContent = "";
+  $("empty").hidden = prendas.length > 0;
+  $("count").textContent = prendas.length ? "· " + prendas.length : "";
+  for (const p of prendas) {
+    const d = document.createElement("div"); d.className = "item";
+    const img = document.createElement("img"); img.src = srcFor(p); img.alt = p.nombre || "Prenda"; img.loading = "lazy";
+    const n = document.createElement("div"); n.className = "name"; n.textContent = p.nombre || "Sin describir aún";
+    d.append(img, n);
+    if (assets) {
+      const b = document.createElement("button"); b.className = "del"; b.type = "button"; b.textContent = "×";
+      b.setAttribute("aria-label", "Quitar " + (p.nombre || "prenda"));
+      b.onclick = () => quitar(p, b);
+      d.append(b);
+    }
+    box.append(d);
+  }
+  $("gen").disabled = !(sample && assets && prendas.length >= 4);
+}
+
+function renderWeek() {
+  const box = $("week"); box.textContent = "";
+  const byId = Object.fromEntries(prendas.map(p => [p.id, p]));
+  const dias = semana?.dias || [];
+  $("week-empty").hidden = dias.length > 0;
+  $("week-date").textContent = semana?.creado ? "Armada el " + new Date(semana.creado).toLocaleDateString("es-CL", {day:"numeric", month:"long"}) : "";
+  for (const d of dias) {
+    const c = document.createElement("article"); c.className = "day";
+    const h = document.createElement("div"); h.className = "day-head";
+    const n = document.createElement("span"); n.className = "day-name"; n.textContent = d.dia;
+    const t = document.createElement("span"); t.className = "tag"; t.textContent = d.ocasion || "";
+    h.append(n, t);
+    const look = document.createElement("div"); look.className = "look";
+    for (const pid of d.prendas || []) {
+      const p = byId[pid]; if (!p) continue;
+      const img = document.createElement("img"); img.src = srcFor(p); img.alt = p.nombre || "Prenda"; img.loading = "lazy";
+      look.append(img);
+    }
+    const desc = document.createElement("p"); desc.textContent = d.look || "";
+    const why = document.createElement("p"); why.className = "why"; why.textContent = d.porque || "";
+    c.append(h, look, desc, why);
+    box.append(c);
+  }
+  const tips = $("tips"); tips.textContent = "";
+  const lista = [...(semana?.comodines || []).map(x => "Comodín: " + x), ...(semana?.sugerencias || []).map(x => "Te sumaría: " + x)];
+  tips.hidden = lista.length === 0;
+  if (lista.length) {
+    const h = document.createElement("strong"); h.textContent = "Notas de estilo";
+    const ul = document.createElement("ul");
+    for (const x of lista) { const li = document.createElement("li"); li.textContent = x; ul.append(li); }
+    tips.append(h, ul);
+  }
+}
+
+// Reduce el tamaño de la foto antes de subirla o enviarla
+async function shrink(blob, max) {
+  try {
+    const bmp = await createImageBitmap(blob);
+    const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise(r => c.toBlob(b => r(b || blob), "image/jpeg", 0.85));
+  } catch { return blob; }
+}
+
+$("file").addEventListener("change", async e => {
+  const files = [...e.target.files]; e.target.value = "";
+  if (!files.length || !assets || !db) return;
+  let ok = 0, fail = 0;
+  for (const [i, f] of files.entries()) {
+    $("up-status").textContent = `Subiendo ${i + 1} de ${files.length}…`;
+    try {
+      const small = await shrink(f, 1400);
+      const r = await assets.upload(small, { type: small.type || f.type });
+      await db.collection("prendas").add({ assetId: r.id, url: r.url, nombre: "", tipo: "", color: "", creado: Date.now() });
+      ok++;
+    } catch (err) { fail++; console.warn(err); }
+  }
+  $("up-status").textContent = fail ? `Se subieron ${ok}. ${fail} no se pudieron subir; prueba de nuevo con esas.` : `Listo: ${ok} prenda${ok === 1 ? "" : "s"} agregada${ok === 1 ? "" : "s"}.`;
+});
+
+async function quitar(p, btn) {
+  if (btn.dataset.armed !== "1") { btn.dataset.armed = "1"; btn.textContent = "?"; btn.title = "Toca otra vez para quitar"; setTimeout(() => { btn.dataset.armed = ""; btn.textContent = "×"; }, 3000); return; }
+  try { await db.doc("prendas/" + p.id).delete(); await assets.delete(p.assetId).catch(() => {}); }
+  catch (err) { $("up-status").textContent = "No se pudo quitar la prenda. Intenta de nuevo."; }
+}
+
+async function blobFor(p) { const r = await fetch(srcFor(p)); return shrink(await r.blob(), 640); }
+
+$("gen").addEventListener("click", async () => {
+  const btn = $("gen"); btn.disabled = true;
+  const st = $("gen-status");
+  try {
+    const lim = await sample.limits();
+    const max = Math.min(lim.images?.maxCount || 20, prendas.length);
+    const usadas = prendas.slice(0, max);
+    st.textContent = "Mirando tus prendas…";
+    const imgs = await Promise.all(usadas.map(blobFor));
+    const prefs = { plan: $("p-plan").value.trim(), clima: $("p-clima").value, estilo: $("p-estilo").value };
+    savePrefs(prefs);
+    const prompt =
+`Eres estilista personal. Te envío ${usadas.length} fotos de prendas del clóset de una mujer, en orden; la foto 1 es la prenda P1, la foto 2 es P2, y así.
+Plan de la semana: ${prefs.plan || "rutina normal de trabajo y fin de semana libre"}. Clima: ${prefs.clima}. Estilo que busca: ${prefs.estilo}.
+1) Describe cada prenda en pocas palabras (nombre corto, tipo, color).
+2) Arma un look completo para cada día de Lunes a Domingo usando SOLO estas prendas. Puedes repetir prendas, pero varía las combinaciones. Si falta algo (ej. zapatos), dilo en el texto del look.
+3) Indica 2 o 3 prendas comodín del clóset y 1 o 2 prendas que convendría sumar.
+Responde solo JSON en español con esta forma:
+{"prendas":[{"ref":"P1","nombre":"…","tipo":"…","color":"…"}],
+ "dias":[{"dia":"Lunes","ocasion":"Oficina","prendas":["P1","P3"],"look":"frase corta del look","porque":"por qué funciona: colores, proporciones, texturas"}],
+ "comodines":["…"],"sugerencias":["…"]}`;
+    st.textContent = "Armando tus looks…";
+    const out = await sample.json(prompt, { images: imgs, modelTier: "complex", cache: false });
+    const ref = r => usadas[parseInt(String(r).replace(/\D/g, ""), 10) - 1];
+    for (const d of out.prendas || []) {
+      const p = ref(d.ref); if (!p) continue;
+      db.doc("prendas/" + p.id).update({ nombre: d.nombre || "", tipo: d.tipo || "", color: d.color || "" }).catch(() => {});
+    }
+    const dias = (out.dias || []).map(d => ({ dia: d.dia, ocasion: d.ocasion || "", look: d.look || "", porque: d.porque || "",
+      prendas: (d.prendas || []).map(ref).filter(Boolean).map(p => p.id) }));
+    await db.doc("semana/actual").set({ dias, comodines: out.comodines || [], sugerencias: out.sugerencias || [], creado: Date.now(), prefs });
+    st.textContent = "Tu semana está lista.";
+    if (prendas.length > max) st.textContent += ` Usé ${max} de tus ${prendas.length} prendas por límite de fotos.`;
+  } catch (err) {
+    const code = err?.code;
+    st.textContent = code === "not_granted" ? "Para armar looks, permite que la página consulte a Claude cuando lo pida."
+      : code === "rate_limited" ? "Muchos pedidos seguidos. Espera un minuto y vuelve a tocar el botón."
+      : "No se pudo armar la semana. Vuelve a intentarlo en un momento.";
+    console.warn(err);
+  } finally { btn.disabled = !(prendas.length >= 4); }
+});
+
+function savePrefs(p) { try { localStorage.setItem("prefs", JSON.stringify(p)); } catch {} }
+function loadPrefs() {
+  try { const p = JSON.parse(localStorage.getItem("prefs") || "null"); if (!p) return;
+    $("p-plan").value = p.plan || ""; $("p-clima").value = p.clima || "templado"; $("p-estilo").value = p.estilo || "casual cómodo"; } catch {}
+}
+
+renderItems(); renderWeek(); loadPrefs();
+(async () => {
+  const use = n => window.claude?.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+  [db, assets, sample] = await Promise.all([use("db"), use("assets"), use("sample")]);
+  $("upload-btn").hidden = !assets;
+  $("ro-note").hidden = !!assets;
+  renderItems();
+  if (!db) { $("up-status").textContent = "Inicia sesión en claude.ai para ver y guardar tu clóset."; return; }
+  db.collection("prendas").orderBy("creado", "asc").onSnapshot(snap => {
+    prendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderItems(); renderWeek();
+  }, () => { $("up-status").textContent = "No se pudo cargar el clóset. Recarga la página."; });
+  db.doc("semana/actual").onSnapshot(s => { semana = s.exists ? s.data() : null; renderWeek(); });
+})();
+</script>
