@@ -48,6 +48,12 @@ input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 .field input, .field select { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
 
+.plan { display: grid; gap: 8px; }
+.plan-row { display: grid; grid-template-columns: 6.5em minmax(0,1fr) minmax(0,1fr); gap: 8px; align-items: center; }
+.plan-row .d { font-family: var(--display); font-weight: 700; font-size: 16px; }
+.plan-row select { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; min-width: 0; width: 100%; }
+@media (max-width: 480px) { .plan-row { grid-template-columns: 1fr 1fr; } .plan-row .d { grid-column: 1 / -1; } }
+
 /* semana */
 .week { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
 .day { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
@@ -92,24 +98,15 @@ input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
 
   <section aria-labelledby="h-prefs">
     <h2 id="h-prefs">Your week</h2>
+    <p class="lede">Pick the occasion and the style for each day. Mix them however you like, like a comfy office day and a polished one.</p>
+    <div class="plan" id="plan"></div>
     <div class="prefs">
-      <label class="field" for="p-plan">What’s on this week
-        <input id="p-plan" placeholder="e.g. office Mon–Thu, dinner Friday, outing Sunday">
-      </label>
       <label class="field" for="p-clima">Weather
         <select id="p-clima">
           <option value="mild (spring)">Mild (spring)</option>
           <option value="hot">Hot</option>
           <option value="cold">Cold</option>
           <option value="rainy">Rainy</option>
-        </select>
-      </label>
-      <label class="field" for="p-estilo">Style
-        <select id="p-estilo">
-          <option value="casual and comfy">Casual and comfy</option>
-          <option value="classic and polished">Classic and polished</option>
-          <option value="minimalist">Minimalist</option>
-          <option value="bold, with color">Bold, with color</option>
         </select>
       </label>
     </div>
@@ -135,6 +132,30 @@ const $ = id => document.getElementById(id);
 let db = null, assets = null, sample = null;
 let prendas = [];   // [{id, assetId, url, nombre, tipo, color}]
 let semana = null;
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const OCCASIONS = ["Office","Casual / weekend","Dinner / night out","Event","Home / rest","Travel"];
+const STYLES = ["Casual and comfy","Classic and polished","Minimalist","Bold, with color"];
+const DEFAULT_PLAN = DAYS.map((d, i) => ({ dia: d, ocasion: i < 5 ? "Office" : "Casual / weekend", estilo: i % 2 ? "Classic and polished" : "Casual and comfy" }));
+
+function buildPlan(plan) {
+  const box = $("plan"); box.textContent = "";
+  plan.forEach((row, i) => {
+    const r = document.createElement("div"); r.className = "plan-row";
+    const d = document.createElement("span"); d.className = "d"; d.textContent = row.dia;
+    const mk = (opts, val, kind) => {
+      const sel = document.createElement("select"); sel.id = `p-${kind}-${i}`;
+      sel.setAttribute("aria-label", `${row.dia} ${kind}`);
+      for (const o of opts) { const op = document.createElement("option"); op.value = o; op.textContent = o; sel.append(op); }
+      sel.value = opts.includes(val) ? val : opts[0];
+      sel.addEventListener("change", () => savePrefs(readPrefs()));
+      return sel;
+    };
+    r.append(d, mk(OCCASIONS, row.ocasion, "occasion"), mk(STYLES, row.estilo, "style"));
+    box.append(r);
+  });
+}
+function readPlan() { return DAYS.map((d, i) => ({ dia: d, ocasion: $(`p-occasion-${i}`).value, estilo: $(`p-style-${i}`).value })); }
+function readPrefs() { return { plan: readPlan(), clima: $("p-clima").value }; }
 
 function srcFor(p) { return p.url || ("/_blob/" + p.assetId); }
 
@@ -168,7 +189,7 @@ function renderWeek() {
     const c = document.createElement("article"); c.className = "day";
     const h = document.createElement("div"); h.className = "day-head";
     const n = document.createElement("span"); n.className = "day-name"; n.textContent = d.dia;
-    const t = document.createElement("span"); t.className = "tag"; t.textContent = d.ocasion || "";
+    const t = document.createElement("span"); t.className = "tag"; t.textContent = [d.ocasion, d.estilo].filter(Boolean).join(" · ");
     h.append(n, t);
     const look = document.createElement("div"); look.className = "look";
     for (const pid of d.prendas || []) {
@@ -237,17 +258,18 @@ $("gen").addEventListener("click", async () => {
     const usadas = prendas.slice(0, max);
     st.textContent = "Looking at your clothes…";
     const imgs = await Promise.all(usadas.map(blobFor));
-    const prefs = { plan: $("p-plan").value.trim(), clima: $("p-clima").value, estilo: $("p-estilo").value };
+    const prefs = readPrefs();
     savePrefs(prefs);
     const prompt =
 `You are a personal stylist. I'm sending ${usadas.length} photos of clothing items from a woman's closet, in order: photo 1 is item P1, photo 2 is P2, and so on.
-This week's plans: ${prefs.plan || "a normal work routine and a free weekend"}. Weather: ${prefs.clima}. Style she wants: ${prefs.estilo}.
+Weather: ${prefs.clima}. Her plan for each day (occasion and the style she wants that day):
+${prefs.plan.map(p => `- ${p.dia}: ${p.ocasion}, ${p.estilo}`).join("\n")}
 1) Describe each item in a few words (short name, type, color).
-2) Put together a complete look for each day from Monday to Sunday using ONLY these items. Items can repeat, but vary the combinations. If something is missing (e.g. shoes), say so in the look text.
+2) Put together a complete look for each day from Monday to Sunday that fits that day’s occasion and style, using ONLY these items. Items can repeat, but vary the combinations. If something is missing (e.g. shoes), say so in the look text.
 3) Name 2 or 3 go-to pieces from the closet and 1 or 2 items worth adding.
 Reply with JSON only, in English, in this shape:
 {"prendas":[{"ref":"P1","nombre":"…","tipo":"…","color":"…"}],
- "dias":[{"dia":"Monday","ocasion":"Office","prendas":["P1","P3"],"look":"short description of the look","porque":"why it works: colors, proportions, textures"}],
+ "dias":[{"dia":"Monday","ocasion":"Office","estilo":"Casual and comfy","prendas":["P1","P3"],"look":"short description of the look","porque":"why it works: colors, proportions, textures"}],
  "comodines":["…"],"sugerencias":["…"]}`;
     st.textContent = "Putting your looks together…";
     const out = await sample.json(prompt, { images: imgs, modelTier: "complex", cache: false });
@@ -256,7 +278,7 @@ Reply with JSON only, in English, in this shape:
       const p = ref(d.ref); if (!p) continue;
       db.doc("prendas/" + p.id).update({ nombre: d.nombre || "", tipo: d.tipo || "", color: d.color || "" }).catch(() => {});
     }
-    const dias = (out.dias || []).map(d => ({ dia: d.dia, ocasion: d.ocasion || "", look: d.look || "", porque: d.porque || "",
+    const dias = (out.dias || []).map((d, i) => ({ dia: d.dia, ocasion: d.ocasion || prefs.plan[i]?.ocasion || "", estilo: d.estilo || prefs.plan[i]?.estilo || "", look: d.look || "", porque: d.porque || "",
       prendas: (d.prendas || []).map(ref).filter(Boolean).map(p => p.id) }));
     await db.doc("semana/actual").set({ dias, comodines: out.comodines || [], sugerencias: out.sugerencias || [], creado: Date.now(), prefs });
     st.textContent = "Your week is ready.";
@@ -272,8 +294,11 @@ Reply with JSON only, in English, in this shape:
 
 function savePrefs(p) { try { localStorage.setItem("prefs", JSON.stringify(p)); } catch {} }
 function loadPrefs() {
-  try { const p = JSON.parse(localStorage.getItem("prefs") || "null"); if (!p) return;
-    $("p-plan").value = p.plan || ""; $("p-clima").value = p.clima || "mild (spring)"; $("p-estilo").value = p.estilo || "casual and comfy"; } catch {}
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem("prefs") || "null"); } catch {}
+  buildPlan(Array.isArray(p?.plan) && p.plan.length === 7 ? p.plan : DEFAULT_PLAN);
+  if (p?.clima) $("p-clima").value = p.clima;
+  $("p-clima").addEventListener("change", () => savePrefs(readPrefs()));
 }
 
 renderItems(); renderWeek(); loadPrefs();
