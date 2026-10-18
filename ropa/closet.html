@@ -201,8 +201,15 @@ function renderItems() {
     if (isPants(p) && db) {
       const t = document.createElement("button"); t.type = "button"; t.className = "chip" + (p.largo ? " on" : "");
       t.setAttribute("aria-pressed", p.largo ? "true" : "false");
-      t.textContent = p.largo ? "Long hem · heels" : "Mark long hem";
+      t.textContent = p.largo ? "Long hem" : "Mark long hem";
       t.onclick = () => db.doc("prendas/" + p.id).update({ largo: !p.largo }).catch(() => {});
+      d.append(t);
+    }
+    if (isShoes(p) && db) {
+      const t = document.createElement("button"); t.type = "button"; t.className = "chip" + (p.alto ? " on" : "");
+      t.setAttribute("aria-pressed", p.alto ? "true" : "false");
+      t.textContent = p.alto ? "Adds height" : "Mark adds height";
+      t.onclick = () => db.doc("prendas/" + p.id).update({ alto: !p.alto }).catch(() => {});
       d.append(t);
     }
     if (assets) {
@@ -309,9 +316,10 @@ async function quitar(p, btn) {
 async function blobFor(p) { const r = await fetch(srcFor(p)); return shrink(await r.blob(), 640); }
 
 function itemLine(p) {
-  return `${p.nombre} (${p.tipo || "item"}, ${p.color || "?"})${p.largo ? ", LONG HEM" : ""}`;
+  return `${p.nombre} (${p.tipo || "item"}, ${p.color || "?"})${p.largo ? ", LONG HEM" : ""}${p.alto ? ", ADDS HEIGHT" : ""}`;
 }
 const isPants = p => /pant|jean|trouser/i.test(`${p.tipo} ${p.nombre}`);
+const isShoes = p => /shoe|boot|sneaker|heel|sandal|mary jane|loafer/i.test(`${p.tipo} ${p.nombre}`);
 
 function closetCatalog() {
   const seen = new Set();
@@ -367,7 +375,7 @@ $("gen-opts").addEventListener("click", async () => {
 ${catalog.map((p, k) => `C${k + 1}: ${itemLine(p)}`).join("\n")}
 Weather: ${prefs.clima}.${prefs.notas ? ` Her own rules, follow them strictly: ${prefs.notas}` : ""}
 Create 12 different looks she can choose from for her week. Cover these occasions and styles, at least 2 looks each: ${combos.join("; ")}.
-Each look needs a top, a bottom or a dress, and shoes when she has any; add a belt, scarf or layer when it helps. Pants marked LONG HEM must always be worn with heeled shoes (heels or heeled boots), never flats or sneakers. Use ONLY items listed above, by C number. Make the looks clearly different from each other.
+Each look needs a top, a bottom or a dress, and shoes when she has any; add a belt, scarf or layer when it helps. Pants marked LONG HEM must always be worn with shoes marked ADDS HEIGHT, never with other shoes. Use ONLY items listed above, by C number. Make the looks clearly different from each other.
 In the look and porque text, never mention C or P numbers, and talk to her as "you". Reply with JSON only, in English: {"looks":[{"ocasion":"Office","estilo":"Casual and comfy","prendas":["C1","C5"],"look":"short description naming each piece","porque":"why it works"}]}`;
     const out = await sample.json(prompt, { modelTier: "complex", cache: false });
     const stamp = Date.now().toString(36);
@@ -401,7 +409,7 @@ Weather: ${prefs.clima}.${prefs.notas ? ` Her own rules, follow them strictly: $
 Make ONE new look for ${day.dia}: ${plan.ocasion}, ${plan.estilo}. ${(day.prendas || []).length ? `It must be clearly different from her current ${day.dia} look (${day.prendas.map(name).filter(Boolean).join(", ")}).` : ""}
 The rest of her week, avoid repeating these combinations:
 ${others}
-The look needs a top, a bottom or a dress, and shoes when she has any; add a belt, scarf or layer when it helps. Pants marked LONG HEM must always be worn with heeled shoes (heels or heeled boots), never flats or sneakers. Use ONLY items listed above, by C number.
+The look needs a top, a bottom or a dress, and shoes when she has any; add a belt, scarf or layer when it helps. Pants marked LONG HEM must always be worn with shoes marked ADDS HEIGHT, never with other shoes. Use ONLY items listed above, by C number.
 In the look and porque text, never mention C or P numbers, and talk to her as "you". Reply with JSON only, in English: {"prendas":["C1","C5"],"look":"short description naming each piece","porque":"why it works"}`;
     const out = await sample.json(prompt, { modelTier: "complex", cache: false });
     const ids = (out.prendas || []).map(r => { const m = String(r).trim().toUpperCase().match(/^C\s*(\d+)$/); return m ? catalog[+m[1] - 1] : null; }).filter(Boolean).map(p => p.id);
@@ -438,7 +446,7 @@ ${nuevas.length ? `I'm also sending ${nuevas.length} photos of new items, in ord
 Weather: ${prefs.clima}. Her plan for each day (occasion and the style she wants that day):
 ${prefs.plan.map(p => `- ${p.dia}: ${p.ocasion}, ${p.estilo}`).join("\n")}
 ${prefs.notas ? `Her own rules, follow them strictly: ${prefs.notas}` : ""}
-${nuevas.length ? "1) Describe each new photo item in a few words (short name, type, color).\n" : ""}2) Put together a complete look for each day from Monday to Sunday that fits that day’s occasion, style and the weather, using ONLY items listed above (refer to them by C or P number). Every look needs a top, a bottom (pants, skirt) or a dress, and shoes when she has any; add a belt, scarf or layer when it helps. Pants marked LONG HEM must always be worn with heeled shoes (heels or heeled boots), never flats or sneakers. Vary the combinations across the week. If something truly is missing, say so in the look text.
+${nuevas.length ? "1) Describe each new photo item in a few words (short name, type, color).\n" : ""}2) Put together a complete look for each day from Monday to Sunday that fits that day’s occasion, style and the weather, using ONLY items listed above (refer to them by C or P number). Every look needs a top, a bottom (pants, skirt) or a dress, and shoes when she has any; add a belt, scarf or layer when it helps. Pants marked LONG HEM must always be worn with shoes marked ADDS HEIGHT, never with other shoes. Vary the combinations across the week. If something truly is missing, say so in the look text.
 3) Name 2 or 3 go-to pieces from the closet and 1 or 2 items worth adding.
 In the look and porque text, never mention C or P numbers, and talk to her as "you". Reply with JSON only, in English, in this shape:
 {"prendas":[{"ref":"P1","nombre":"…","tipo":"…","color":"…"}],
