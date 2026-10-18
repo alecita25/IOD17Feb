@@ -67,6 +67,7 @@ details.closet[open] > summary { margin-bottom: 12px; }
 .look img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
 .day p { margin: 0; font-size: 14px; }
 .day .why { color: var(--muted); font-size: 13px; }
+button.small { padding: 7px 14px; font-size: 13px; justify-self: start; }
 .tips { background: var(--accent-soft); border-radius: 16px; padding: 18px; display: grid; gap: 6px; }
 .tips ul { margin: 0; padding-left: 18px; }
 
@@ -195,7 +196,7 @@ function renderWeek() {
   const dias = semana?.dias || [];
   $("week-empty").hidden = dias.length > 0;
   $("week-date").textContent = semana?.creado ? "Planned " + new Date(semana.creado).toLocaleDateString("en-US", {day:"numeric", month:"long"}) : "";
-  for (const d of dias) {
+  dias.forEach((d, i) => {
     const c = document.createElement("article"); c.className = "day";
     const h = document.createElement("div"); h.className = "day-head";
     const n = document.createElement("span"); n.className = "day-name"; n.textContent = d.dia;
@@ -210,8 +211,13 @@ function renderWeek() {
     const desc = document.createElement("p"); desc.textContent = d.look || "";
     const why = document.createElement("p"); why.className = "why"; why.textContent = d.porque || "";
     c.append(h, look, desc, why);
+    if (sample && db) {
+      const b = document.createElement("button"); b.type = "button"; b.className = "ghost small"; b.textContent = "New look for this day";
+      b.onclick = () => redoDay(i, b);
+      c.append(b);
+    }
     box.append(c);
-  }
+  });
   const tips = $("tips"); tips.textContent = "";
   const lista = [...(semana?.comodines || []).map(x => "Go-to piece: " + x), ...(semana?.sugerencias || []).map(x => "Worth adding: " + x)];
   tips.hidden = lista.length === 0;
@@ -258,6 +264,43 @@ async function quitar(p, btn) {
 }
 
 async function blobFor(p) { const r = await fetch(srcFor(p)); return shrink(await r.blob(), 640); }
+
+function closetCatalog() {
+  const seen = new Set();
+  return prendas.filter(p => p.nombre && !seen.has(p.assetId) && !seen.has(p.nombre + "|" + p.tipo) && seen.add(p.assetId) && seen.add(p.nombre + "|" + p.tipo));
+}
+
+// Replace one day's look, keeping the rest of the week
+async function redoDay(i, btn) {
+  const day = semana?.dias?.[i]; if (!day) return;
+  btn.disabled = true; btn.textContent = "Finding another look…";
+  try {
+    const catalog = closetCatalog();
+    const prefs = readPrefs();
+    const plan = prefs.plan[i] || { ocasion: day.ocasion, estilo: day.estilo };
+    const name = id => prendas.find(p => p.id === id)?.nombre || "";
+    const others = semana.dias.filter((_, j) => j !== i).map(d => `${d.dia}: ${(d.prendas || []).map(name).filter(Boolean).join(", ")}`).join("\n");
+    const prompt =
+`You are a personal stylist for a woman. Her closet:
+${catalog.map((p, k) => `C${k + 1}: ${p.nombre} (${p.tipo || "item"}, ${p.color || "?"})`).join("\n")}
+Weather: ${prefs.clima}.${prefs.notas ? ` Her own rules, follow them strictly: ${prefs.notas}` : ""}
+Make ONE new look for ${day.dia}: ${plan.ocasion}, ${plan.estilo}. It must be clearly different from her current ${day.dia} look (${(day.prendas || []).map(name).filter(Boolean).join(", ")}).
+The rest of her week, avoid repeating these combinations:
+${others}
+The look needs a top, a bottom or a dress, and shoes when she has any; add a belt, scarf or layer when it helps. Use ONLY items listed above, by C number.
+Reply with JSON only, in English: {"prendas":["C1","C5"],"look":"short description naming each piece","porque":"why it works"}`;
+    const out = await sample.json(prompt, { modelTier: "complex", cache: false });
+    const ids = (out.prendas || []).map(r => { const m = String(r).trim().toUpperCase().match(/^C\s*(\d+)$/); return m ? catalog[+m[1] - 1] : null; }).filter(Boolean).map(p => p.id);
+    if (!ids.length) throw { code: "incomplete" };
+    const dias = semana.dias.slice();
+    dias[i] = { dia: day.dia, ocasion: plan.ocasion, estilo: plan.estilo, prendas: ids, look: out.look || "", porque: out.porque || "" };
+    await db.doc("semana/actual").update({ dias });
+  } catch (err) {
+    console.warn(err);
+    btn.disabled = false;
+    btn.textContent = err?.code === "rate_limited" ? "Too many requests, wait a minute" : "Couldn’t change it, tap to try again";
+  }
+}
 
 $("gen").addEventListener("click", async () => {
   const btn = $("gen"); btn.disabled = true;
