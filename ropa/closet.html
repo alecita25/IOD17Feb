@@ -87,7 +87,7 @@ input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
     <div class="empty" id="empty">
       Your clothes will show up here. Tap <strong>Add photos</strong> and pick several from your gallery: tops, pants, skirts, dresses, jackets, shoes and accessories. One item per photo works best.
     </div>
-    <p class="notice" id="ro-note" hidden>Only the closet owner can add or remove clothes.</p>
+    <p class="notice" id="ro-note" hidden>Photo uploads aren’t available in this view. Open this link in Safari or Chrome while signed in to claude.ai, then tap <strong>+ Add photos</strong>.</p>
   </section>
 
   <section aria-labelledby="h-prefs">
@@ -207,7 +207,7 @@ async function shrink(blob, max) {
 $("file").addEventListener("change", async e => {
   const files = [...e.target.files]; e.target.value = "";
   if (!files.length || !assets || !db) return;
-  let ok = 0, fail = 0;
+  let ok = 0, fail = 0, lastErr = "";
   for (const [i, f] of files.entries()) {
     $("up-status").textContent = `Uploading ${i + 1} of ${files.length}…`;
     try {
@@ -215,9 +215,9 @@ $("file").addEventListener("change", async e => {
       const r = await assets.upload(small, { type: small.type || f.type });
       await db.collection("prendas").add({ assetId: r.id, url: r.url, nombre: "", tipo: "", color: "", creado: Date.now() });
       ok++;
-    } catch (err) { fail++; console.warn(err); }
+    } catch (err) { fail++; lastErr = err?.code || err?.message || String(err); console.warn(err); }
   }
-  $("up-status").textContent = fail ? `Uploaded ${ok}. ${fail} couldn’t be uploaded; try those again.` : `Done: added ${ok} item${ok === 1 ? "" : "s"}.`;
+  $("up-status").textContent = fail ? `Uploaded ${ok}. ${fail} couldn’t be uploaded (${lastErr}); try those again.` : `Done: added ${ok} item${ok === 1 ? "" : "s"}.`;
 });
 
 async function quitar(p, btn) {
