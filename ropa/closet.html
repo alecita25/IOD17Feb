@@ -138,7 +138,7 @@ let db = null, assets = null, sample = null;
 let prendas = [];   // [{id, assetId, url, nombre, tipo, color}]
 let semana = null;
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-const OCCASIONS = ["Office","Casual / weekend","Dinner / night out","Event","Home / rest","Travel"];
+const OCCASIONS = ["Office","Work from home","Casual / weekend","Dinner / night out","Event","Home / rest","Travel"];
 const STYLES = ["Casual and comfy","Classic and polished","Minimalist","Bold, with color"];
 const DEFAULT_PLAN = DAYS.map((d, i) => ({ dia: d, ocasion: i < 5 ? "Office" : "Casual / weekend", estilo: i % 2 ? "Classic and polished" : "Casual and comfy" }));
 
