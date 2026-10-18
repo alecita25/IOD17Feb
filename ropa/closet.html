@@ -304,7 +304,17 @@ Reply with JSON only, in English, in this shape:
   } finally { btn.disabled = !(prendas.length >= 4); }
 });
 
-function savePrefs(p) { try { localStorage.setItem("prefs", JSON.stringify(p)); } catch {} }
+let prefsTimer = null;
+function savePrefs(p) {
+  try { localStorage.setItem("prefs", JSON.stringify(p)); } catch {}
+  // Also keep the choices in the closet's database so they survive reloads and other devices
+  clearTimeout(prefsTimer);
+  prefsTimer = setTimeout(() => { db?.doc("ajustes/prefs").set(p).catch(() => {}); }, 600);
+}
+function applyPrefs(p) {
+  if (Array.isArray(p?.plan) && p.plan.length === 7) buildPlan(p.plan);
+  if (p?.clima) $("p-clima").value = p.clima;
+}
 function loadPrefs() {
   let p = null;
   try { p = JSON.parse(localStorage.getItem("prefs") || "null"); } catch {}
@@ -325,6 +335,7 @@ renderItems(); renderWeek(); loadPrefs();
     prendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderItems(); renderWeek();
   }, () => { $("up-status").textContent = "Couldn’t load your closet. Reload the page."; });
+  db.doc("ajustes/prefs").get().then(d => { if (d.exists) applyPrefs(d.data()); }).catch(() => {});
   db.doc("semana/actual").onSnapshot(s => { semana = s.exists ? s.data() : null; renderWeek(); });
 })();
 </script>
