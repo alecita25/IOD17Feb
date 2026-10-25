@@ -1,0 +1,5 @@
+# Dependencias para Streamlit Community Cloud (app en "Buscador Vuelos/app.py")
+pandas>=2.0
+streamlit>=1.50
+altair>=5.0
+requests>=2.28

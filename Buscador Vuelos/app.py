@@ -9,6 +9,7 @@ Ejecutar con:
 """
 
 import hashlib
+import hmac
 import os
 from datetime import date, timedelta
 from urllib.parse import quote
@@ -26,6 +27,18 @@ AZUL, NARANJA = "#2a78d6", "#eb6834"
 COLORES_SERIES = [AZUL, NARANJA, "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
 
 st.set_page_config(page_title="Buscador de vuelos baratos", page_icon="✈️", layout="wide")
+
+# En Streamlit Community Cloud el código queda en /mount/src/<repositorio>
+EN_LA_NUBE = os.path.abspath(__file__).startswith("/mount/src") or bool(os.environ.get("EN_LA_NUBE"))
+
+# Los secretos de Streamlit Cloud (Settings → Secrets) se pasan a variables de entorno
+# para que alertas.py y fuentes.py también los encuentren.
+try:
+    for _nombre, _valor in st.secrets.items():
+        if isinstance(_valor, (str, int, float)):
+            os.environ.setdefault(_nombre, str(_valor))
+except Exception:  # no hay archivo de secretos
+    pass
 
 
 def nombre_aeropuerto(codigo):
@@ -74,16 +87,40 @@ def clave_guardada(nombre):
         return os.environ.get(nombre, "")
 
 
+def pedir_contrasena():
+    """Si hay APP_PASSWORD configurada, pide la contraseña antes de mostrar la app."""
+    contrasena = clave_guardada("APP_PASSWORD")
+    if not contrasena or st.session_state.get("autorizado"):
+        return
+    st.title("✈️ Buscador de vuelos baratos")
+    with st.form("entrar"):
+        intento = st.text_input("Contraseña", type="password")
+        if st.form_submit_button("Entrar", type="primary"):
+            if hmac.compare_digest(intento.encode(), str(contrasena).encode()):
+                st.session_state["autorizado"] = True
+                st.rerun()
+            st.error("Contraseña incorrecta.")
+    st.stop()
+
+
+pedir_contrasena()
+
+
 # ---------- Fuentes de datos ----------
 with st.sidebar:
     with st.expander("🔑 Fuentes de datos", expanded=False):
         st.caption("Pega la clave de cada servicio que quieras usar. Sin claves, la app usa datos de demo.")
-        clave_serp = st.text_input("SerpApi (Google Flights)", clave_guardada("SERPAPI_KEY"), type="password",
-                                   help="Cuenta gratis en serpapi.com → Dashboard → Your Private API Key")
-        clave_duffel = st.text_input("Duffel", clave_guardada("DUFFEL_TOKEN"), type="password",
-                                     help="Cuenta en duffel.com → Developers → Access tokens")
-        clave_kiwi = st.text_input("Kiwi.com (Tequila)", clave_guardada("KIWI_API_KEY"), type="password",
-                                   help="tequila.kiwi.com → My solutions → API key")
+        # Las claves guardadas no se envían al navegador: el campo queda vacío y se usa la guardada.
+        def campo_clave(etiqueta, nombre, ayuda):
+            guardada = clave_guardada(nombre)
+            escrita = st.text_input(etiqueta, "", type="password", help=ayuda,
+                                    placeholder="✔ guardada (escribe otra para cambiarla)" if guardada else "")
+            return escrita or guardada
+
+        clave_serp = campo_clave("SerpApi (Google Flights)", "SERPAPI_KEY",
+                                 "Cuenta gratis en serpapi.com → Dashboard → Your Private API Key")
+        clave_duffel = campo_clave("Duffel", "DUFFEL_TOKEN", "Cuenta en duffel.com → Developers → Access tokens")
+        clave_kiwi = campo_clave("Kiwi.com (Tequila)", "KIWI_API_KEY", "tequila.kiwi.com → My solutions → API key")
 
     MONEDA = st.radio("💱 Moneda principal", ["A$", "US$"], horizontal=True,
                       help="Los precios se muestran en ambas monedas; esta es la que va primero y en los gráficos.")
@@ -166,7 +203,8 @@ if modo_real:
                "Los precios cambian a cada rato: confírmalos siempre en la página antes de comprar.")
 else:
     st.caption("⚠️ Precios **simulados** con fines de demostración. Para precios reales, agrega tus claves "
-               "en **🔑 Fuentes de datos** (barra izquierda).")
+               + ("en Streamlit Cloud (**⋮ → Settings → Secrets**)." if EN_LA_NUBE
+                  else "en **🔑 Fuentes de datos** (barra izquierda)."))
 
 # Comparar la misma búsqueda en otras páginas
 ida_txt, vuelta_txt = fecha_ida.isoformat(), fecha_vuelta.isoformat()
@@ -485,7 +523,11 @@ with tab_alertas:
     st.markdown("Guarda un vuelo y la app revisa su precio **automáticamente** (todos los días o cada los días "
                 "que elijas), en tus fechas o en días flexibles. Te avisa cuando baja de tu precio objetivo o "
                 "cuando aparece un nuevo precio más bajo.")
-    if not modo_real:
+    if EN_LA_NUBE:
+        st.warning("📱 Estás en la **versión en internet**: aquí las alertas no se revisan solas y se pueden borrar "
+                   "cuando la app se reinicia. Para alertas diarias usa la app en tu computador (o activa "
+                   "\"Seguir precios\" en Google Flights).")
+    elif not modo_real:
         st.warning("Sin claves, las alertas usan precios de **demo**. Para alertas reales, guarda tu clave de "
                    "SerpApi en **⚙️ Configurar avisos y claves** (más abajo).")
 
@@ -600,7 +642,9 @@ with tab_alertas:
 
     st.divider()
     st.subheader("⏰ Revisión automática diaria")
-    if os.name == "nt":
+    if EN_LA_NUBE:
+        st.markdown("No disponible en la versión en internet: la revisión diaria funciona en la app de tu computador.")
+    elif os.name == "nt":
         activa = al.revision_diaria_activa()
         st.markdown(("✅ **Activada.** " if activa else "⏸️ **Desactivada.** ")
                     + "Windows revisa tus alertas solo, una vez al día, aunque la app esté cerrada. "
@@ -619,30 +663,43 @@ with tab_alertas:
 
     with st.expander("⚙️ Configurar avisos y claves"):
         secretos = al.leer_secretos()
+        if EN_LA_NUBE:
+            st.info("En la versión en internet, las claves se configuran en Streamlit Cloud: en tu app, "
+                    "**⋮ → Settings → Secrets**. Ahí no se guardan desde esta pantalla.")
         st.markdown("Para que la revisión diaria funcione con la app cerrada, las claves se guardan en tu "
                     "computador (`.streamlit/secrets.toml`, que **no** se sube a GitHub).\n\n"
                     "- **Escritorio**: siempre activo; aparece una notificación de Windows.\n"
                     "- **Email**: con Gmail necesitas una *contraseña de aplicación* "
                     "(myaccount.google.com → Seguridad → Contraseñas de aplicaciones).\n"
                     "- **Telegram**: te llega al celular. Ver los pasos en el README.")
-        with st.form("config_avisos"):
-            n_serp = st.text_input("Clave de SerpApi", secretos.get("SERPAPI_KEY", ""), type="password")
-            c1, c2 = st.columns(2)
-            n_email = c1.text_input("Tu Gmail", secretos.get("EMAIL_REMITENTE", ""))
-            n_clave = c2.text_input("Contraseña de aplicación de Gmail", secretos.get("EMAIL_CLAVE_APP", ""),
-                                    type="password")
-            n_tg_token = c1.text_input("Token del bot de Telegram", secretos.get("TELEGRAM_TOKEN", ""),
-                                       type="password")
-            n_tg_chat = c2.text_input("Chat ID de Telegram", secretos.get("TELEGRAM_CHAT_ID", ""))
-            n_cupo = c1.number_input("Búsquedas al mes de tu plan de SerpApi", min_value=1, step=50,
-                                     value=al.busquedas_al_mes(),
-                                     help="El plan gratis trae 250. Míralo en tu Dashboard de serpapi.com.")
-            if st.form_submit_button("💾 Guardar"):
-                al.guardar_secretos({"BUSQUEDAS_MES": str(int(n_cupo)), "SERPAPI_KEY": n_serp,
-                                     "EMAIL_REMITENTE": n_email,
-                                     "EMAIL_CLAVE_APP": n_clave, "TELEGRAM_TOKEN": n_tg_token,
-                                     "TELEGRAM_CHAT_ID": n_tg_chat})
-                st.success("Guardado.")
+        if not EN_LA_NUBE:
+            with st.form("config_avisos"):
+                st.caption("Los campos con clave quedan vacíos si ya está guardada: escribe solo lo que quieras cambiar.")
+                guardado = "✔ guardada"
+                n_serp = st.text_input("Clave de SerpApi", "", type="password",
+                                       placeholder=guardado if secretos.get("SERPAPI_KEY") else "")
+                c1, c2 = st.columns(2)
+                n_email = c1.text_input("Tu Gmail", secretos.get("EMAIL_REMITENTE", ""))
+                n_clave = c2.text_input("Contraseña de aplicación de Gmail", "", type="password",
+                                        placeholder=guardado if secretos.get("EMAIL_CLAVE_APP") else "")
+                n_tg_token = c1.text_input("Token del bot de Telegram", "", type="password",
+                                           placeholder=guardado if secretos.get("TELEGRAM_TOKEN") else "")
+                n_tg_chat = c2.text_input("Chat ID de Telegram", secretos.get("TELEGRAM_CHAT_ID", ""))
+                n_cupo = c1.number_input("Búsquedas al mes de tu plan de SerpApi", min_value=1, step=50,
+                                         value=al.busquedas_al_mes(),
+                                         help="El plan gratis trae 250. Míralo en tu Dashboard de serpapi.com.")
+                n_app = c2.text_input("Contraseña para entrar a la app (opcional)", "", type="password",
+                                      placeholder=guardado if secretos.get("APP_PASSWORD") else "")
+                if st.form_submit_button("💾 Guardar"):
+                    cambios = {"BUSQUEDAS_MES": str(int(n_cupo)), "EMAIL_REMITENTE": n_email,
+                               "TELEGRAM_CHAT_ID": n_tg_chat}
+                    # Las claves vacías no borran las guardadas
+                    for nombre, valor in [("SERPAPI_KEY", n_serp), ("EMAIL_CLAVE_APP", n_clave),
+                                          ("TELEGRAM_TOKEN", n_tg_token), ("APP_PASSWORD", n_app)]:
+                        if valor.strip():
+                            cambios[nombre] = valor
+                    al.guardar_secretos(cambios)
+                    st.success("Guardado.")
         if st.button("📨 Enviar aviso de prueba"):
             canales = al.enviar_avisos(["✈️ Prueba: así te llegará el aviso cuando baje el precio de tu vuelo."])
             if canales:

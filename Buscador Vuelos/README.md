@@ -21,6 +21,33 @@ python -m streamlit run app.py
 
 Se abre en el navegador en `http://localhost:8501`. No cierres la ventana negra mientras la usas.
 
+## Usarla desde el teléfono
+
+**En tu casa (mismo Wi-Fi):** abre la app en el computador y, en el teléfono, entra a la dirección que aparece
+como *Network URL* en la ventana negra (por ejemplo `http://192.168.1.25:8501`).
+
+**Desde cualquier lugar (Streamlit Community Cloud, gratis):**
+1. Entra a <https://share.streamlit.io> y conéctate con tu cuenta de GitHub.
+2. **Create app** → *Deploy a public app from GitHub* y completa:
+   - Repository: `alecita25/IOD17Feb`
+   - Branch: `buscador-vuelos`
+   - Main file path: `streamlit_app.py`
+   - App URL: el nombre que quieras (por ejemplo `vuelos-ale`).
+3. En **Advanced settings → Secrets** pega (con tus datos):
+   ```
+   APP_PASSWORD = "una-contraseña-para-entrar"
+   SERPAPI_KEY = "tu-clave-de-serpapi"
+   BUSQUEDAS_MES = "250"
+   TELEGRAM_TOKEN = ""
+   TELEGRAM_CHAT_ID = ""
+   ```
+4. **Deploy**. En unos minutos tienes un link `https://<nombre>.streamlit.app` para abrir en el teléfono
+   (agrégalo a la pantalla de inicio).
+
+En la versión en internet las alertas no se revisan solas (eso funciona en la app del computador) y si nadie
+la usa por un tiempo se "duerme": al abrirla tarda alrededor de un minuto en despertar. **No compartas el link
+sin contraseña**: cada búsqueda gasta de tu plan de SerpApi.
+
 ## Fuentes de precios reales
 
 La app consulta cada fuente que tenga clave y junta los resultados. Las claves se pegan en la barra

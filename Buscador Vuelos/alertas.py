@@ -118,7 +118,7 @@ def leer_secretos():
     if ARCHIVO_SECRETOS.exists():
         secretos = tomllib.loads(ARCHIVO_SECRETOS.read_text(encoding="utf-8"))
     for nombre in ["SERPAPI_KEY", "DUFFEL_TOKEN", "KIWI_API_KEY", "EMAIL_REMITENTE", "EMAIL_CLAVE_APP",
-                   "EMAIL_DESTINO", "TELEGRAM_TOKEN", "TELEGRAM_CHAT_ID"]:
+                   "EMAIL_DESTINO", "TELEGRAM_TOKEN", "TELEGRAM_CHAT_ID", "BUSQUEDAS_MES", "APP_PASSWORD"]:
         secretos.setdefault(nombre, os.environ.get(nombre, ""))
     return secretos
 
@@ -209,7 +209,8 @@ def revisar_alertas(notificar=True, hoy=None, solo_ids=None, forzar=False):
         anteriores = historial[historial["alerta_id"] == alerta["id"]]["precio_total_usd"]
         minimo_anterior = anteriores.min() if not anteriores.empty else None
         precio = actual["precio_total_usd"]
-        nuevas_filas.append({"revisado": datetime.now().replace(microsecond=0), "alerta_id": alerta["id"],
+        revisado = datetime.combine(hoy, datetime.now().time()).replace(microsecond=0)
+        nuevas_filas.append({"revisado": revisado, "alerta_id": alerta["id"],
                              **actual})
 
         objetivo = alerta.get("precio_objetivo")
