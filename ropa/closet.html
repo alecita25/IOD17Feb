@@ -265,6 +265,8 @@ function flatlay(ids) {
   for (const id of ids || []) { const p = byId[id]; if (p) g[kind(p)].push(p); }
   // A layer worn as the only top goes in the top spot
   if (!g.top.length && !g.dress.length && g.layer.length) g.top.push(g.layer.shift());
+  // Only one piece sits in the main top spot; any extra top is worn over it, so it goes with the layers
+  if (g.top.length > 1) g.layer.unshift(...g.top.splice(1));
   const pic = (p, cls) => { const i = document.createElement("img"); i.src = srcFor(p); i.alt = p.nombre || "Clothing item"; i.loading = "lazy"; if (cls) i.className = cls; return i; };
   const box = document.createElement("div"); box.className = "flatlay";
   const main = document.createElement("div"); main.className = "fl-main" + (g.dress.length ? " dress" : "");
