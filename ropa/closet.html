@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;700&display=swap">
 <style>
-/* Layout: a clothes rail across the top (your items), with the week below as seven hanging tags, one per day */
+/* Layout: day tabs over one large flat-lay outfit card, options as a swipeable row, planner and closet below */
 :root {
   --bg: #fdfbfe;
   --surface: #ffffff;
@@ -57,14 +57,37 @@ details.closet[open] > summary { margin-bottom: 12px; }
 .plan-row select { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; min-width: 0; width: 100%; }
 @media (max-width: 480px) { .plan-row { grid-template-columns: 1fr 1fr; } .plan-row .d { grid-column: 1 / -1; } }
 
-/* semana */
-.week { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-.day { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
-.day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.day-name { font-family: var(--display); font-size: 20px; font-weight: 700; }
+/* semana: day tabs over one large outfit card */
+.daytabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.daytab { flex-direction: column; gap: 2px; padding: 8px 4px; border-radius: 14px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); font-weight: 700; font-size: 13px; justify-content: center; min-width: 0; }
+.daytab small { font-weight: 500; font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.daytab.today { border-color: var(--accent); }
+.daytab[aria-selected="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.daytab[aria-selected="true"] small { color: var(--on-accent); opacity: .85; }
+.week { display: grid; gap: 16px; }
+.carousel { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 300px); gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
+.carousel > * { scroll-snap-align: start; }
+.day { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 18px; display: grid; gap: 12px; align-content: start; min-width: 0; box-shadow: 0 1px 2px rgba(60, 30, 80, .04), 0 8px 24px rgba(60, 30, 80, .05); }
+.day-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 8px; }
+.day-name { font-family: var(--display); font-size: 22px; font-weight: 700; }
 .tag { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
-.look { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
-.look img { width: 100%; aspect-ratio: 3/4; object-fit: contain; background: transparent; border: 0; }
+/* flat-lay: top above bottom on the left, layer, shoes and accessories on the right */
+.flatlay { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 10px; align-items: center; background: linear-gradient(180deg, var(--bg), var(--accent-soft)); border-radius: 16px; padding: 14px; min-height: 220px; }
+.fl-main { display: grid; gap: 4px; justify-items: center; }
+.fl-tops { display: flex; justify-content: center; gap: 4px; width: 100%; }
+.fl-main img { width: 100%; max-height: 170px; object-fit: contain; }
+.fl-tops img { max-height: 150px; min-width: 0; }
+.fl-main.dress img { max-height: 320px; }
+.fl-side { display: grid; gap: 10px; justify-items: center; align-content: center; }
+.fl-side img { width: 100%; max-height: 110px; object-fit: contain; }
+.fl-side img.small { max-height: 60px; }
+.carousel .flatlay { min-height: 180px; }
+.carousel .fl-main img { max-height: 120px; }
+.carousel .fl-main.dress img { max-height: 230px; }
+.carousel .fl-side img { max-height: 80px; }
+.day details { font-size: 13px; color: var(--muted); }
+.day details summary { cursor: pointer; font-weight: 700; color: var(--accent); }
+.day details p { margin-top: 6px; }
 .day p { margin: 0; font-size: 14px; }
 .day .why { color: var(--muted); font-size: 13px; }
 .wear { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
@@ -74,8 +97,9 @@ details.closet[open] > summary { margin-bottom: 12px; }
 .chip { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 999px; background: transparent; color: var(--muted); border: 1px solid var(--line); justify-content: center; }
 .chip.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 button.small { padding: 7px 14px; font-size: 13px; justify-self: start; }
-.tips { background: var(--accent-soft); border-radius: 16px; padding: 18px; display: grid; gap: 6px; }
-.tips ul { margin: 0; padding-left: 18px; }
+.tips { background: var(--accent-soft); border-radius: 16px; padding: 14px 18px; display: grid; gap: 6px; }
+.tips ul { margin: 8px 0 0; padding-left: 18px; }
+.tips summary { cursor: pointer; font-weight: 700; color: var(--accent); }
 
 .status { font-size: 13px; color: var(--muted); min-height: 1.5em; }
 .notice { font-size: 13px; color: var(--muted); }
@@ -95,6 +119,7 @@ button.small { padding: 7px 14px; font-size: 13px; justify-self: start; }
       <h2 id="h-looks">This week’s looks</h2>
       <span class="count" id="week-date"></span>
     </div>
+    <div class="daytabs" id="daytabs" role="tablist" aria-label="Days of the week"></div>
     <div class="week" id="week"></div>
     <div class="empty" id="week-empty">Once you have at least 4 items, tap <strong>Plan my week</strong> and a look for each day, Monday to Sunday, appears here, with why each combination works.</div>
     <div class="tips" id="tips" hidden></div>
@@ -104,9 +129,9 @@ button.small { padding: 7px 14px; font-size: 13px; justify-self: start; }
       <h2 id="h-opts">Look options</h2>
       <button id="gen-opts" class="ghost" type="button" disabled>Get new options</button>
     </div>
-    <p class="lede">Pick a day under any look to wear it that day. It replaces whatever that day had.</p>
+    <p class="lede">Swipe through the options and pick a day under the ones you like. It replaces whatever that day had.</p>
     <span class="status" id="opts-status" role="status"></span>
-    <div class="week" id="opts"></div>
+    <div class="carousel" id="opts"></div>
     <div class="empty" id="opts-empty">Tap <strong>Get new options</strong> for a set of looks built from your closet, then choose which day to wear each one.</div>
   </section>
 
@@ -223,22 +248,51 @@ function renderItems() {
   $("gen").disabled = !(sample && assets && prendas.length >= 4);
 }
 
-function lookCard(d, title) {
+function kind(p) {
+  const t = `${p.tipo} ${p.nombre}`.toLowerCase();
+  if (isShoes(p)) return "shoes";
+  if (/belt/.test(t)) return "belt";
+  if (/accessor|scarf|bandana|bag|jewel|earring|necklace/.test(t)) return "acc";
+  if (/dress/.test(t)) return "dress";
+  if (isPants(p) || /skirt|shorts/.test(t)) return "bottom";
+  if (/jacket|blazer|coat|cardigan|kimono|overshirt|layer/.test(t)) return "layer";
+  return "top";
+}
+
+function flatlay(ids) {
   const byId = Object.fromEntries(prendas.map(p => [p.id, p]));
+  const g = { top: [], layer: [], bottom: [], dress: [], shoes: [], belt: [], acc: [] };
+  for (const id of ids || []) { const p = byId[id]; if (p) g[kind(p)].push(p); }
+  // A layer worn as the only top goes in the top spot
+  if (!g.top.length && !g.dress.length && g.layer.length) g.top.push(g.layer.shift());
+  const pic = (p, cls) => { const i = document.createElement("img"); i.src = srcFor(p); i.alt = p.nombre || "Clothing item"; i.loading = "lazy"; if (cls) i.className = cls; return i; };
+  const box = document.createElement("div"); box.className = "flatlay";
+  const main = document.createElement("div"); main.className = "fl-main" + (g.dress.length ? " dress" : "");
+  if (g.dress.length) main.append(...g.dress.map(p => pic(p)));
+  else {
+    const tops = document.createElement("div"); tops.className = "fl-tops"; tops.append(...g.top.map(p => pic(p)));
+    main.append(tops, ...g.bottom.map(p => pic(p)));
+  }
+  const side = document.createElement("div"); side.className = "fl-side";
+  side.append(...g.layer.map(p => pic(p)), ...g.shoes.map(p => pic(p)), ...g.belt.map(p => pic(p, "small")), ...g.acc.map(p => pic(p, "small")));
+  box.append(main, side);
+  return box;
+}
+
+function lookCard(d, title) {
   const c = document.createElement("article"); c.className = "day";
   const h = document.createElement("div"); h.className = "day-head";
   const n = document.createElement("span"); n.className = "day-name"; n.textContent = title;
   const t = document.createElement("span"); t.className = "tag"; t.textContent = [d.ocasion, d.estilo].filter(Boolean).join(" · ");
   h.append(n, t);
-  const look = document.createElement("div"); look.className = "look";
-  for (const pid of d.prendas || []) {
-    const p = byId[pid]; if (!p) continue;
-    const img = document.createElement("img"); img.src = srcFor(p); img.alt = p.nombre || "Clothing item"; img.loading = "lazy";
-    look.append(img);
-  }
   const desc = document.createElement("p"); desc.textContent = d.look || "";
-  const why = document.createElement("p"); why.className = "why"; why.textContent = d.porque || "";
-  c.append(h, look, desc, why);
+  c.append(h, flatlay(d.prendas), desc);
+  if (d.porque) {
+    const det = document.createElement("details");
+    const sm = document.createElement("summary"); sm.textContent = "Why it works";
+    const why = document.createElement("p"); why.textContent = d.porque;
+    det.append(sm, why); c.append(det);
+  }
   return c;
 }
 
@@ -247,35 +301,52 @@ function weekDays() {
   return DAYS.map(dia => byDay[dia] || { dia, empty: true });
 }
 
+const todayIdx = (new Date().getDay() + 6) % 7;
+let selDay = todayIdx;
+
 function renderWeek() {
   const box = $("week"); box.textContent = "";
+  const tabs = $("daytabs"); tabs.textContent = "";
   const hasAny = (semana?.dias || []).length > 0;
   $("week-empty").hidden = hasAny;
+  tabs.hidden = !hasAny;
   $("week-date").textContent = semana?.creado ? "Planned " + new Date(semana.creado).toLocaleDateString("en-US", {day:"numeric", month:"long"}) : "";
-  if (hasAny) weekDays().forEach((d, i) => {
+  if (hasAny) {
+    const days = weekDays();
+    days.forEach((d, i) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "daytab" + (i === todayIdx ? " today" : "");
+      b.setAttribute("role", "tab"); b.setAttribute("aria-selected", i === selDay ? "true" : "false");
+      b.setAttribute("aria-label", d.dia + (i === todayIdx ? ", today" : ""));
+      b.append(d.dia.slice(0, 3));
+      const sm = document.createElement("small"); sm.textContent = d.empty ? "—" : (d.ocasion || "").split(" ")[0]; b.append(sm);
+      b.onclick = () => { selDay = i; renderWeek(); };
+      tabs.append(b);
+    });
+    const d = days[selDay], i = selDay;
     let c;
     if (d.empty || !(d.prendas || []).length) {
       c = document.createElement("article"); c.className = "day";
       const n = document.createElement("span"); n.className = "day-name"; n.textContent = d.dia;
       const ph = document.createElement("p"); ph.className = "placeholder"; ph.textContent = "No look yet. Pick one from Look options.";
       c.append(n, ph);
-    } else c = lookCard(d, d.dia);
+    } else c = lookCard(d, d.dia + (i === todayIdx ? " · today" : ""));
     if (sample && db) {
       const b = document.createElement("button"); b.type = "button"; b.className = "ghost small"; b.textContent = "New look for this day";
       b.onclick = () => redoDay(i, b);
       c.append(b);
     }
     box.append(c);
-  });
+  }
   renderOptions();
   const tips = $("tips"); tips.textContent = "";
   const lista = [...(semana?.comodines || []).map(x => "Go-to piece: " + x), ...(semana?.sugerencias || []).map(x => "Worth adding: " + x)];
   tips.hidden = lista.length === 0;
   if (lista.length) {
-    const h = document.createElement("strong"); h.textContent = "Style notes";
+    const det = document.createElement("details");
+    const h = document.createElement("summary"); h.textContent = "Style notes for this week";
     const ul = document.createElement("ul");
     for (const x of lista) { const li = document.createElement("li"); li.textContent = x; ul.append(li); }
-    tips.append(h, ul);
+    det.append(h, ul); tips.append(det);
   }
 }
 
@@ -320,6 +391,18 @@ function itemLine(p) {
 }
 const isPants = p => /pant|jean|trouser/i.test(`${p.tipo} ${p.nombre}`);
 const isShoes = p => /shoe|boot|sneaker|heel|sandal|mary jane|loafer/i.test(`${p.tipo} ${p.nombre}`);
+
+// Safety net for the model: long-hem pants never go out with flat shoes
+function fixHeight(ids) {
+  const byId = Object.fromEntries(prendas.map(p => [p.id, p]));
+  const items = ids.map(i => byId[i]).filter(Boolean);
+  if (!items.some(p => p.largo)) return ids;
+  const shoes = items.filter(isShoes);
+  if (shoes.length && shoes.every(p => p.alto)) return ids;
+  const tall = prendas.find(p => p.alto && isShoes(p));
+  if (!tall) return ids;
+  return [...ids.filter(i => !(byId[i] && isShoes(byId[i]))), tall.id];
+}
 
 function closetCatalog() {
   const seen = new Set();
@@ -382,7 +465,7 @@ In the look and porque text, never mention C or P numbers, and talk to her as "y
     const looks = (out.looks || []).map((l, k) => ({
       id: `${stamp}-${k}`, ocasion: l.ocasion || "", estilo: l.estilo || "", look: l.look || "", porque: l.porque || "",
       prendas: (l.prendas || []).map(r => { const m = String(r).trim().toUpperCase().match(/^C\s*(\d+)$/); return m ? catalog[+m[1] - 1] : null; }).filter(Boolean).map(p => p.id)
-    })).filter(l => l.prendas.length);
+    })).map(l => ({ ...l, prendas: fixHeight(l.prendas) })).filter(l => l.prendas.length);
     if (!looks.length) throw { code: "incomplete" };
     await db.doc("opciones/actual").set({ looks, creado: Date.now() });
     st.textContent = `${looks.length} new options. Pick a day under the ones you like.`;
@@ -414,6 +497,7 @@ In the look and porque text, never mention C or P numbers, and talk to her as "y
     const out = await sample.json(prompt, { modelTier: "complex", cache: false });
     const ids = (out.prendas || []).map(r => { const m = String(r).trim().toUpperCase().match(/^C\s*(\d+)$/); return m ? catalog[+m[1] - 1] : null; }).filter(Boolean).map(p => p.id);
     if (!ids.length) throw { code: "incomplete" };
+    ids.splice(0, ids.length, ...fixHeight(ids));
     const days = weekDays().map(d => d.empty ? null : d);
     days[i] = { dia: day.dia, ocasion: plan.ocasion, estilo: plan.estilo, prendas: ids, look: out.look || "", porque: out.porque || "" };
     await db.doc("semana/actual").set({ ...(semana || {}), dias: days.filter(Boolean), creado: semana?.creado || Date.now() });
@@ -460,7 +544,7 @@ In the look and porque text, never mention C or P numbers, and talk to her as "y
       db.doc("prendas/" + p.id).update({ nombre: d.nombre || "", tipo: d.tipo || "", color: d.color || "" }).catch(() => {});
     }
     const dias = (out.dias || []).map((d, i) => ({ dia: d.dia, ocasion: d.ocasion || prefs.plan[i]?.ocasion || "", estilo: d.estilo || prefs.plan[i]?.estilo || "", look: d.look || "", porque: d.porque || "",
-      prendas: (d.prendas || []).map(ref).filter(Boolean).map(p => p.id) }));
+      prendas: fixHeight((d.prendas || []).map(ref).filter(Boolean).map(p => p.id)) }));
     if (dias.length < 7 || dias.some(d => !d.prendas.length)) throw { code: "incomplete" };
     await db.doc("semana/actual").set({ dias, comodines: out.comodines || [], sugerencias: out.sugerencias || [], creado: Date.now(), prefs });
     st.textContent = "Your week is ready.";
@@ -508,7 +592,14 @@ renderItems(); renderWeek(); loadPrefs();
     prendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderItems(); renderWeek();
   }, () => { $("up-status").textContent = "Couldn’t load your closet. Reload the page."; });
-  db.doc("ajustes/prefs").get().then(d => { if (d.exists) applyPrefs(d.data()); }).catch(() => {});
+  // Follow the saved choices live, so a change made elsewhere is never overwritten by an old copy
+  db.doc("ajustes/prefs").onSnapshot(d => {
+    if (!d.exists || d.metadata?.hasPendingWrites) return;
+    const p = d.data();
+    if (document.activeElement?.id === "p-notas") { if (Array.isArray(p.plan) && p.plan.length === 7) buildPlan(p.plan); if (p.clima) $("p-clima").value = p.clima; }
+    else applyPrefs(p);
+    try { localStorage.setItem("prefs", JSON.stringify(p)); } catch {}
+  });
   db.doc("opciones/actual").onSnapshot(o => { opciones = o.exists ? o.data() : null; renderOptions(); });
   db.doc("semana/actual").onSnapshot(s => { semana = s.exists ? s.data() : null; renderWeek(); });
 })();
